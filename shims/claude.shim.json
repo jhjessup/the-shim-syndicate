@@ -1,0 +1,129 @@
+{
+  "$schema": "./routing.schema.json",
+  "syndicate_version": "1.0.0",
+  "routing_mode": "fallback",
+  "agents": {
+    "lead": {
+      "identity_file": "identities/THE_LEAD.md",
+      "primary_backend": "claude",
+      "secondary_backend": "gemini",
+      "backend_config": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "model_constraints": {
+          "min_context_tokens": 8192,
+          "max_output_tokens": 16384,
+          "supports_tool_use": true,
+          "supports_code_execution": true
+        },
+        "cli_tool": "claude",
+        "cli_flags": ["--dangerously-skip-permissions"],
+        "env_var_api_key": "ANTHROPIC_API_KEY",
+        "timeout_seconds": 180,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 2
+        }
+      },
+      "task_types": [
+        "architecture",
+        "implementation",
+        "decision-logging"
+      ],
+      "context_window_preference": "standard"
+    },
+    "ledger": {
+      "identity_file": "identities/THE_LEDGER.md",
+      "primary_backend": "gemini",
+      "secondary_backend": "claude",
+      "backend_config": {
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "model_constraints": {
+          "min_context_tokens": 32768,
+          "max_output_tokens": 8192,
+          "supports_tool_use": true,
+          "supports_code_execution": false
+        },
+        "cli_tool": "gemini",
+        "cli_flags": [],
+        "env_var_api_key": "GEMINI_API_KEY",
+        "timeout_seconds": 240,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 3
+        }
+      },
+      "task_types": [
+        "research",
+        "documentation",
+        "context-retrieval",
+        "dependency-analysis"
+      ],
+      "context_window_preference": "maximum"
+    },
+    "gavel": {
+      "identity_file": "identities/THE_GAVEL.md",
+      "primary_backend": "local",
+      "secondary_backend": "claude",
+      "backend_config": {
+        "provider": "ollama",
+        "model": "qwen2.5-coder:32b",
+        "model_constraints": {
+          "min_context_tokens": 4096,
+          "max_output_tokens": 4096,
+          "supports_tool_use": false,
+          "supports_code_execution": true
+        },
+        "cli_tool": "ollama",
+        "cli_flags": ["run"],
+        "env_var_api_key": null,
+        "timeout_seconds": 300,
+        "retry_policy": {
+          "max_attempts": 2,
+          "backoff_strategy": "linear",
+          "backoff_base_seconds": 5
+        }
+      },
+      "task_types": [
+        "security-audit",
+        "code-quality",
+        "test-generation"
+      ],
+      "context_window_preference": "standard"
+    }
+  },
+  "task_routing_rules": [
+    {
+      "rule_id": "large-codebase-to-ledger",
+      "description": "Route any context-retrieval task exceeding 50k tokens to The Ledger (Gemini) for its extended context window.",
+      "condition": {
+        "task_type": "context-retrieval",
+        "min_context_size_tokens": 50000
+      },
+      "route_to": "ledger",
+      "priority": 90
+    },
+    {
+      "rule_id": "security-always-gavel",
+      "description": "All security audit tasks always go to The Gavel regardless of context size.",
+      "condition": {
+        "task_type": "security-audit"
+      },
+      "route_to": "gavel",
+      "priority": 95
+    },
+    {
+      "rule_id": "test-generation-to-gavel",
+      "description": "Test generation is an audit function — route to The Gavel.",
+      "condition": {
+        "task_type": "test-generation"
+      },
+      "route_to": "gavel",
+      "priority": 80
+    }
+  ],
+  "fallback_chain": ["claude", "gemini", "local"]
+}

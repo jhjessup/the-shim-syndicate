@@ -1,0 +1,182 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://shim-syndicate/schemas/routing.schema.json",
+  "title": "Syndicate Shim Routing Configuration",
+  "description": "Defines how tasks are routed to specific model backends for each Syndicate agent identity.",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["syndicate_version", "routing_mode", "agents"],
+  "properties": {
+    "syndicate_version": {
+      "type": "string",
+      "description": "Must match the version field in manifest.json",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "routing_mode": {
+      "type": "string",
+      "enum": ["strict", "fallback", "cost-optimized"],
+      "description": "strict: use only the assigned backend. fallback: attempt primary, fall back to secondary on failure. cost-optimized: route based on task complexity scoring."
+    },
+    "agents": {
+      "type": "object",
+      "description": "Per-agent routing configuration keyed by Syndicate handle.",
+      "required": ["lead", "ledger", "gavel"],
+      "properties": {
+        "lead": { "$ref": "#/definitions/agentConfig" },
+        "ledger": { "$ref": "#/definitions/agentConfig" },
+        "gavel": { "$ref": "#/definitions/agentConfig" }
+      },
+      "additionalProperties": false
+    },
+    "task_routing_rules": {
+      "type": "array",
+      "description": "Optional rules that override default agent assignment based on task metadata.",
+      "items": { "$ref": "#/definitions/routingRule" }
+    },
+    "fallback_chain": {
+      "type": "array",
+      "description": "Ordered list of backends to attempt if primary fails. Only used when routing_mode is 'fallback'.",
+      "items": {
+        "type": "string",
+        "enum": ["claude", "gemini", "local"]
+      }
+    }
+  },
+  "definitions": {
+    "agentConfig": {
+      "type": "object",
+      "required": ["primary_backend", "identity_file"],
+      "properties": {
+        "identity_file": {
+          "type": "string",
+          "description": "Relative path to the agent's identity Markdown file.",
+          "pattern": "^identities/[A-Z_]+\\.md$"
+        },
+        "primary_backend": {
+          "type": "string",
+          "enum": ["claude", "gemini", "local"],
+          "description": "The primary model backend for this agent."
+        },
+        "secondary_backend": {
+          "type": "string",
+          "enum": ["claude", "gemini", "local"],
+          "description": "Fallback backend if primary is unavailable. Optional."
+        },
+        "backend_config": {
+          "$ref": "#/definitions/backendConfig"
+        },
+        "task_types": {
+          "type": "array",
+          "description": "Task type tags this agent handles.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "architecture",
+              "implementation",
+              "research",
+              "documentation",
+              "security-audit",
+              "code-quality",
+              "dependency-analysis",
+              "test-generation",
+              "context-retrieval",
+              "decision-logging"
+            ]
+          }
+        },
+        "context_window_preference": {
+          "type": "string",
+          "enum": ["standard", "extended", "maximum"],
+          "description": "Indicates how much context this agent typically requires."
+        }
+      },
+      "additionalProperties": false
+    },
+    "backendConfig": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["anthropic", "google", "opencode", "ollama", "openai-compatible"]
+        },
+        "model": {
+          "type": "string",
+          "description": "Model identifier string as accepted by the provider API."
+        },
+        "model_constraints": {
+          "type": "object",
+          "properties": {
+            "min_context_tokens": { "type": "integer" },
+            "max_output_tokens": { "type": "integer" },
+            "supports_tool_use": { "type": "boolean" },
+            "supports_code_execution": { "type": "boolean" }
+          }
+        },
+        "cli_tool": {
+          "type": "string",
+          "description": "CLI command used to invoke this backend (e.g., 'claude', 'gemini', 'opencode', 'ollama')."
+        },
+        "cli_flags": {
+          "type": "array",
+          "description": "Default flags passed to the CLI tool on invocation.",
+          "items": { "type": "string" }
+        },
+        "env_var_api_key": {
+          "type": "string",
+          "description": "Name of the environment variable holding the API key. Never the key itself."
+        },
+        "endpoint_override": {
+          "type": "string",
+          "description": "Optional base URL override for self-hosted or proxied endpoints.",
+          "format": "uri"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 600,
+          "default": 120
+        },
+        "retry_policy": {
+          "type": "object",
+          "properties": {
+            "max_attempts": { "type": "integer", "minimum": 1, "maximum": 5 },
+            "backoff_strategy": { "type": "string", "enum": ["linear", "exponential"] },
+            "backoff_base_seconds": { "type": "integer", "minimum": 1 }
+          }
+        }
+      },
+      "required": ["provider", "model", "cli_tool"],
+      "additionalProperties": false
+    },
+    "routingRule": {
+      "type": "object",
+      "description": "A conditional rule that overrides agent assignment based on task properties.",
+      "required": ["condition", "route_to"],
+      "properties": {
+        "rule_id": { "type": "string" },
+        "description": { "type": "string" },
+        "condition": {
+          "type": "object",
+          "properties": {
+            "task_type": { "type": "string" },
+            "contains_tag": { "type": "string" },
+            "file_pattern": { "type": "string" },
+            "min_context_size_tokens": { "type": "integer" }
+          }
+        },
+        "route_to": {
+          "type": "string",
+          "enum": ["lead", "ledger", "gavel"]
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Higher priority rules are evaluated first.",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

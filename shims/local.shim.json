@@ -1,0 +1,117 @@
+{
+  "$schema": "./routing.schema.json",
+  "syndicate_version": "1.0.0",
+  "routing_mode": "strict",
+  "_comment": "Air-gapped / local-only shim. Use this configuration for sensitive, offline, or regulated environments where no data can leave the local machine. All agents run on local models via Ollama. Performance and capability trade-offs apply — document exceptions in ORACLE.md.",
+  "agents": {
+    "lead": {
+      "identity_file": "identities/THE_LEAD.md",
+      "primary_backend": "local",
+      "backend_config": {
+        "provider": "ollama",
+        "model": "qwen2.5-coder:32b",
+        "model_constraints": {
+          "min_context_tokens": 8192,
+          "max_output_tokens": 8192,
+          "supports_tool_use": false,
+          "supports_code_execution": true
+        },
+        "cli_tool": "ollama",
+        "cli_flags": ["run"],
+        "env_var_api_key": null,
+        "timeout_seconds": 600,
+        "retry_policy": {
+          "max_attempts": 2,
+          "backoff_strategy": "linear",
+          "backoff_base_seconds": 10
+        }
+      },
+      "task_types": [
+        "architecture",
+        "implementation",
+        "decision-logging"
+      ],
+      "context_window_preference": "standard"
+    },
+    "ledger": {
+      "identity_file": "identities/THE_LEDGER.md",
+      "primary_backend": "local",
+      "backend_config": {
+        "provider": "ollama",
+        "model": "llama3.3:70b",
+        "model_constraints": {
+          "min_context_tokens": 16384,
+          "max_output_tokens": 4096,
+          "supports_tool_use": false,
+          "supports_code_execution": false
+        },
+        "cli_tool": "ollama",
+        "cli_flags": ["run"],
+        "env_var_api_key": null,
+        "timeout_seconds": 600,
+        "retry_policy": {
+          "max_attempts": 2,
+          "backoff_strategy": "linear",
+          "backoff_base_seconds": 10
+        }
+      },
+      "task_types": [
+        "research",
+        "documentation",
+        "context-retrieval",
+        "dependency-analysis"
+      ],
+      "context_window_preference": "extended"
+    },
+    "gavel": {
+      "identity_file": "identities/THE_GAVEL.md",
+      "primary_backend": "local",
+      "backend_config": {
+        "provider": "opencode",
+        "model": "qwen2.5-coder:32b",
+        "model_constraints": {
+          "min_context_tokens": 4096,
+          "max_output_tokens": 4096,
+          "supports_tool_use": false,
+          "supports_code_execution": true
+        },
+        "cli_tool": "opencode",
+        "cli_flags": [],
+        "env_var_api_key": null,
+        "timeout_seconds": 600,
+        "retry_policy": {
+          "max_attempts": 2,
+          "backoff_strategy": "linear",
+          "backoff_base_seconds": 10
+        }
+      },
+      "task_types": [
+        "security-audit",
+        "code-quality",
+        "test-generation"
+      ],
+      "context_window_preference": "standard"
+    }
+  },
+  "task_routing_rules": [
+    {
+      "rule_id": "all-local-security",
+      "description": "In air-gapped mode, security audits must run on The Gavel via OpenCode for filesystem access.",
+      "condition": {
+        "task_type": "security-audit"
+      },
+      "route_to": "gavel",
+      "priority": 100
+    },
+    {
+      "rule_id": "all-local-context",
+      "description": "In air-gapped mode, use the largest available local model for context retrieval.",
+      "condition": {
+        "task_type": "context-retrieval"
+      },
+      "route_to": "ledger",
+      "priority": 90
+    }
+  ],
+  "fallback_chain": ["local"]
+}

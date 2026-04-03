@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The Shim Syndicate — Master Registry",
+  "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
+  "active_version": "1.0.0",
+  "syndicate": {
+    "name": "The Shim Syndicate",
+    "handle": "@syndicate",
+    "established": "2026-04-03",
+    "core_repository": "jhjessup/the-shim-syndicate",
+    "canonical_branch": "claude/master-core-setup-PJkxq"
+  },
+  "versions": [
+    {
+      "version": "1.0.0",
+      "released": "2026-04-03",
+      "status": "active",
+      "description": "Initial master core release. Establishes the three agent identities (Lead, Ledger, Gavel), shim routing layer, hydration script, and audit log template.",
+      "changelog": [
+        "Defined THE_LEAD identity — Principal Architect authority.",
+        "Defined THE_LEDGER identity — Context Librarian and institutional memory.",
+        "Defined THE_GAVEL identity — Independent audit authority with OWASP-aligned checklist.",
+        "Created routing.schema.json — validated shim configuration schema.",
+        "Created claude.shim.json — Claude-primary routing configuration.",
+        "Created gemini.shim.json — Gemini-primary routing configuration.",
+        "Created local.shim.json — Air-gapped local-model routing configuration.",
+        "Created syndicate-init.sh — Project hydration script.",
+        "Created ORACLE.md template — Project-specific override system.",
+        "Created AUDIT_LOG.md template — Permanent decision and audit trail.",
+        "Created README.md — Deployment and operational documentation."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "1.0",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "1.0",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "1.0",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": ["claude", "gemini", "ollama", "opencode"],
+        "optional_cli_tools": ["git", "jq", "curl"]
+      },
+      "integrity": {
+        "released_by": "The Shim Syndicate — Bootstrap",
+        "sha256_manifest": "PENDING — set on first tagged release"
+      }
+    }
+  ],
+  "version_schema": {
+    "description": "Schema for future version entries. All versions must conform to this structure.",
+    "fields": {
+      "version": "Semver string (MAJOR.MINOR.PATCH). MAJOR = breaking identity changes. MINOR = new features, new agents, new shims. PATCH = fixes to existing files.",
+      "released": "ISO 8601 date of release.",
+      "status": "One of: active | deprecated | archived.",
+      "description": "Human-readable summary of what changed.",
+      "changelog": "Array of specific change descriptions.",
+      "agents": "Map of agent handle to identity version, file path, and default model.",
+      "shims_available": "Array of shim config file paths included in this version.",
+      "compatibility": "Minimum required model versions and CLI tools.",
+      "integrity": "Release author and SHA-256 hash of manifest for tamper detection."
+    }
+  },
+  "deployment_registry": {
+    "description": "Projects that have been hydrated from this Syndicate core. Entries are added by syndicate-init.sh at hydration time. This allows retroactive auditing of which Syndicate version was active for any given project.",
+    "entries": []
+  }
+}

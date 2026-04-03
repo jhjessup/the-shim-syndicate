@@ -1,0 +1,121 @@
+{
+  "$schema": "./routing.schema.json",
+  "syndicate_version": "1.0.0",
+  "routing_mode": "strict",
+  "_comment": "Gemini-primary shim. Use this configuration when Gemini is the primary orchestration model (e.g., in a Google Cloud native project). The Lead role is served by Gemini here; Claude is reserved for audit.",
+  "agents": {
+    "lead": {
+      "identity_file": "identities/THE_LEAD.md",
+      "primary_backend": "gemini",
+      "secondary_backend": "claude",
+      "backend_config": {
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "model_constraints": {
+          "min_context_tokens": 32768,
+          "max_output_tokens": 16384,
+          "supports_tool_use": true,
+          "supports_code_execution": true
+        },
+        "cli_tool": "gemini",
+        "cli_flags": [],
+        "env_var_api_key": "GEMINI_API_KEY",
+        "timeout_seconds": 240,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 3
+        }
+      },
+      "task_types": [
+        "architecture",
+        "implementation",
+        "decision-logging"
+      ],
+      "context_window_preference": "extended"
+    },
+    "ledger": {
+      "identity_file": "identities/THE_LEDGER.md",
+      "primary_backend": "gemini",
+      "secondary_backend": "claude",
+      "backend_config": {
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "model_constraints": {
+          "min_context_tokens": 65536,
+          "max_output_tokens": 8192,
+          "supports_tool_use": true,
+          "supports_code_execution": false
+        },
+        "cli_tool": "gemini",
+        "cli_flags": [],
+        "env_var_api_key": "GEMINI_API_KEY",
+        "timeout_seconds": 300,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 3
+        }
+      },
+      "task_types": [
+        "research",
+        "documentation",
+        "context-retrieval",
+        "dependency-analysis"
+      ],
+      "context_window_preference": "maximum"
+    },
+    "gavel": {
+      "identity_file": "identities/THE_GAVEL.md",
+      "primary_backend": "claude",
+      "secondary_backend": "local",
+      "backend_config": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "model_constraints": {
+          "min_context_tokens": 8192,
+          "max_output_tokens": 8192,
+          "supports_tool_use": true,
+          "supports_code_execution": true
+        },
+        "cli_tool": "claude",
+        "cli_flags": [],
+        "env_var_api_key": "ANTHROPIC_API_KEY",
+        "timeout_seconds": 180,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 2
+        }
+      },
+      "task_types": [
+        "security-audit",
+        "code-quality",
+        "test-generation"
+      ],
+      "context_window_preference": "standard"
+    }
+  },
+  "task_routing_rules": [
+    {
+      "rule_id": "large-context-to-gemini-ledger",
+      "description": "Large document ingestion always goes to Gemini for maximum context fidelity.",
+      "condition": {
+        "task_type": "context-retrieval",
+        "min_context_size_tokens": 100000
+      },
+      "route_to": "ledger",
+      "priority": 95
+    },
+    {
+      "rule_id": "security-always-gavel",
+      "description": "Security audits always route to The Gavel (Claude in this shim) for independent review.",
+      "condition": {
+        "task_type": "security-audit"
+      },
+      "route_to": "gavel",
+      "priority": 100
+    }
+  ],
+  "fallback_chain": ["gemini", "claude", "local"]
+}
