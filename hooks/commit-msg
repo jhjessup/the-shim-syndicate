@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# =============================================================================
+# commit-msg — The Gavel's Audit Trace Enforcement Hook
+# =============================================================================
+# Version: 2.0.0
+# Repository: jhjessup/the-shim-syndicate
+#
+# DESCRIPTION:
+#   Git commit-msg hook that enforces the Syndicate-Audit-Trace trailer
+#   requirement on all mission/ branch commits. This trailer provides an
+#   immutable chain of custody linking every commit to a Gavel audit record.
+#
+# REQUIRED TRAILER FORMAT:
+#   Syndicate-Audit-Trace: @gavel <STATUS> — <ISO-8601-timestamp>
+#
+#   Examples:
+#     Syndicate-Audit-Trace: @gavel PASS — 2026-04-03T14:22:00Z
+#     Syndicate-Audit-Trace: @gavel CONDITIONAL PASS — 2026-04-03T14:22:00Z
+#
+# INSTALLATION:
+#   cp hooks/commit-msg /path/to/project/.git/hooks/commit-msg
+#   chmod +x /path/to/project/.git/hooks/commit-msg
+#
+#   syndicate-init.sh --mission installs this automatically.
+#
+# BYPASS (emergency only — requires operator acknowledgment):
+#   git commit --no-verify   # This bypasses ALL hooks. Logged as violation.
+# =============================================================================
+set -uo pipefail
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG="$(cat "$COMMIT_MSG_FILE")"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "UNKNOWN")"
+
+# Only enforce on mission/ branches
+if [[ "$CURRENT_BRANCH" != mission/* ]]; then
+  exit 0
+fi
+
+echo ""
+echo -e "${CYAN}[GAVEL]${RESET} Checking commit message for Syndicate-Audit-Trace..."
+
+TRAILER_PATTERN='^Syndicate-Audit-Trace:[[:space:]]*@gavel[[:space:]]+(PASS|CONDITIONAL PASS|FAIL)[[:space:]]+—[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}'
+
+if echo "$COMMIT_MSG" | grep -qE "$TRAILER_PATTERN"; then
+  TRACE_LINE="$(echo "$COMMIT_MSG" | grep -E "$TRAILER_PATTERN" | tail -1)"
+  echo -e "${GREEN}[PASS]${RESET}  Syndicate-Audit-Trace found: $TRACE_LINE"
+  exit 0
+else
+  echo ""
+  echo -e "${RED}${BOLD}[FAIL] COMMIT BLOCKED — Missing Syndicate-Audit-Trace${RESET}"
+  echo ""
+  echo -e "  Every commit on a mission/ branch requires the Gavel audit trailer."
+  echo -e "  Add the following line to the end of your commit message:"
+  echo ""
+  echo -e "  ${CYAN}Syndicate-Audit-Trace: @gavel PASS — $(date -u +%Y-%m-%dT%H:%M:%SZ)${RESET}"
+  echo ""
+  echo -e "  If The Gavel issued a CONDITIONAL PASS, use:"
+  echo -e "  ${CYAN}Syndicate-Audit-Trace: @gavel CONDITIONAL PASS — $(date -u +%Y-%m-%dT%H:%M:%SZ)${RESET}"
+  echo ""
+  echo -e "  A FAIL trace is never a valid commit state — resolve findings first."
+  echo ""
+  exit 1
+fi
