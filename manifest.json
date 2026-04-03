@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The Shim Syndicate — Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "2.0.0",
+  "active_version": "3.1.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,9 +12,66 @@
   },
   "versions": [
     {
-      "version": "2.0.0",
+      "version": "3.1.0",
       "released": "2026-04-03",
       "status": "active",
+      "description": "Operative Tier & Task Queue Integration. Introduces The Operative agent (bounded execution tier), formalizes dispatch package protocol, integrates task queue into project-map.json, and clarifies orchestrator/executor hierarchy.",
+      "changelog": [
+        "Added THE_OPERATIVE.md v1.0 — New fourth agent identity for bounded task execution with dispatch package contract.",
+        "Updated THE_LEAD.md v3.0 — Added Operative to delegation matrix, refined SDLC phases to include DISPATCH phase.",
+        "Updated THE_LEDGER.md v3.0 — Refined task queue protocol to generate dispatch packages for @operative instances, embedded task tracking in project-map.json.",
+        "Updated project-map.json template — Added task_queue section with task status tracking, dispatch package embedding, and operative assignment.",
+        "Updated README.md — Added Operative to agent team table, clarified orchestrator/executor architecture, updated directory structure.",
+        "Clarified agent hierarchy: Orchestrators (Lead, Ledger) govern strategy and planning; Gavel and Operative enforce quality and execute work.",
+        "Formalized dispatch package spec with required fields: task_definition, context, specification, audit_criteria."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "3.0",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "3.0",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.0",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        },
+        "operative": {
+          "identity_version": "1.0",
+          "file": "identities/THE_OPERATIVE.md",
+          "default_model": "task-appropriate"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json"
+      ],
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/commit-msg"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": ["git", "jq", "tmux", "bash"],
+        "optional_cli_tools": ["claude", "gemini", "ollama", "opencode"]
+      },
+      "integrity": {
+        "released_by": "The Shim Syndicate — Operative Tier Integration",
+        "sha256_manifest": "PENDING — set on first tagged release"
+      }
+    },
+    {
+      "version": "2.0.0",
+      "released": "2026-04-03",
+      "status": "superseded",
       "description": "Branch-Based Mission Architecture. Adds mission-scoped vault isolation, syndicate-session.sh tmux manager with branch detection, Gavel pre-commit and commit-msg hooks, Mission Brief and project-map.json templates, and headless-first identity updates for all three agents.",
       "changelog": [
         "Added syndicate-session.sh — tmux session manager with git branch detection and auto-loading of mission ORACLE.md and project-map.json.",
