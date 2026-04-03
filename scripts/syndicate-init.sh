@@ -2,13 +2,19 @@
 # =============================================================================
 # syndicate-init.sh — The Shim Syndicate Project Hydration Script
 # =============================================================================
-# Version: 1.0.0
+# Version: 2.0.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
 #   Hydrates a new or existing project repository with The Shim Syndicate
 #   agent team. Creates a local .syndicate/ stub, links the Syndicate Core,
 #   generates a project-specific ORACLE.md, and initializes the AUDIT_LOG.md.
+#
+#   With --mission: Operates in Mission Mode. Verifies the current branch is a
+#   mission/ branch, creates a branch-isolated vault at
+#   .syndicate/vault/<branch-name>/, generates a Mission Brief, copies the
+#   ORACLE.md and project-map.json templates into the vault, and installs the
+#   Gavel git hooks (pre-commit and commit-msg).
 #
 # USAGE:
 #   cd /path/to/your-project
@@ -20,16 +26,18 @@
 #   --operator  Operator name for audit records (quoted string)
 #   --project   Project name (defaults to current directory name)
 #   --core      Path to the Syndicate Core repo (required if not set via env)
+#   --mission   Run in Mission Mode: initialize a branch-specific vault
 #   --dry-run   Preview all actions without executing them
 #   --help      Show this help message
 #
 # ENVIRONMENT VARIABLES:
-#   SYNDICATE_CORE_PATH   Path to the cloned Syndicate Core repository
+#   SYNDICATE_CORE_PATH     Path to the cloned Syndicate Core repository
 #   SYNDICATE_DEFAULT_SHIM  Default shim to use (claude | gemini | local)
 #
 # EXAMPLES:
 #   bash syndicate-init.sh --operator "Jane Smith" --shim claude
 #   SYNDICATE_CORE_PATH=~/syndicate bash syndicate-init.sh --mode subtree
+#   bash syndicate-init.sh --mission --operator "Jane Smith"
 #
 # =============================================================================
 set -euo pipefail
@@ -37,7 +45,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="2.0.0"
 SYNDICATE_DIR=".syndicate"
 REQUIRED_COMMANDS=("git" "jq")
 OPTIONAL_COMMANDS=("claude" "gemini" "ollama" "opencode")
@@ -69,6 +77,7 @@ OPERATOR="${SYNDICATE_OPERATOR:-}"
 PROJECT_NAME=""
 CORE_PATH="${SYNDICATE_CORE_PATH:-}"
 DRY_RUN=false
+MISSION_MODE=false
 PROJECT_DIR="$(pwd)"
 
 # -----------------------------------------------------------------------------
@@ -84,12 +93,13 @@ usage() {
 # -----------------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --mode)      MODE="$2";       shift 2 ;;
-    --shim)      SHIM="$2";       shift 2 ;;
-    --operator)  OPERATOR="$2";   shift 2 ;;
+    --mode)      MODE="$2";         shift 2 ;;
+    --shim)      SHIM="$2";         shift 2 ;;
+    --operator)  OPERATOR="$2";     shift 2 ;;
     --project)   PROJECT_NAME="$2"; shift 2 ;;
-    --core)      CORE_PATH="$2";  shift 2 ;;
-    --dry-run)   DRY_RUN=true;    shift   ;;
+    --core)      CORE_PATH="$2";    shift 2 ;;
+    --mission)   MISSION_MODE=true; shift   ;;
+    --dry-run)   DRY_RUN=true;      shift   ;;
     --help|-h)   usage ;;
     *) log_error "Unknown option: $1"; exit 1 ;;
   esac
@@ -457,6 +467,163 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# MISSION MODE — Steps 10–13 (only when --mission is passed)
+# -----------------------------------------------------------------------------
+if [[ "$MISSION_MODE" == true ]]; then
+
+  # --------------------------------------------------------------------------
+  # Step 10: Verify mission/ branch
+  # --------------------------------------------------------------------------
+  log_section "Step 10: Mission Branch Verification"
+
+  CURRENT_BRANCH="$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "UNKNOWN")"
+
+  if [[ "$CURRENT_BRANCH" != mission/* ]]; then
+    log_error "Mission Mode requires a 'mission/' branch. Current branch: $CURRENT_BRANCH"
+    log_error "Create a mission branch first:  git checkout -b mission/<name>"
+    exit 1
+  fi
+
+  MISSION_NAME="${CURRENT_BRANCH#mission/}"
+  # Vault directory name: replace any remaining / with - for filesystem safety
+  VAULT_DIRNAME="${CURRENT_BRANCH//\//-}"
+  VAULT_DIR="$STUB_DIR/vault/${VAULT_DIRNAME}"
+
+  log_ok "Mission branch confirmed: $CURRENT_BRANCH"
+  log_ok "Mission name: $MISSION_NAME"
+  log_ok "Vault path: $VAULT_DIR"
+
+  # --------------------------------------------------------------------------
+  # Step 11: Create branch-isolated vault
+  # --------------------------------------------------------------------------
+  log_section "Step 11: Creating Mission Vault — $VAULT_DIRNAME"
+
+  exec_or_dry "mkdir -p '$VAULT_DIR'"
+  exec_or_dry "mkdir -p '$VAULT_DIR/logs'"
+
+  log_ok "Vault directory created: $VAULT_DIR"
+
+  # --------------------------------------------------------------------------
+  # Step 12: Generate Mission Brief, ORACLE.md, and project-map.json in vault
+  # --------------------------------------------------------------------------
+  log_section "Step 12: Generating Mission Artifacts"
+
+  MISSION_DATE="$(date -u +%Y-%m-%d)"
+  MISSION_BRIEF_TEMPLATE="$CORE_PATH/templates/MISSION_BRIEF.md"
+  ORACLE_TEMPLATE="$CORE_PATH/templates/ORACLE.md"
+  MAP_TEMPLATE="$CORE_PATH/templates/project-map.json"
+
+  # Mission Brief
+  if [[ -f "$MISSION_BRIEF_TEMPLATE" ]]; then
+    BRIEF_DEST="$VAULT_DIR/MISSION_BRIEF.md"
+    if [[ "$DRY_RUN" == false ]]; then
+      sed \
+        -e "s/{{MISSION_NAME}}/$MISSION_NAME/g" \
+        -e "s/{{MISSION_DATE}}/$MISSION_DATE/g" \
+        -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+        -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
+        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+        "$MISSION_BRIEF_TEMPLATE" > "$BRIEF_DEST"
+      log_ok "Mission Brief generated → $BRIEF_DEST"
+    else
+      dry_run_echo "sed [template substitution] '$MISSION_BRIEF_TEMPLATE' → '$BRIEF_DEST'"
+    fi
+  else
+    log_warn "MISSION_BRIEF.md template not found at $MISSION_BRIEF_TEMPLATE — skipping."
+  fi
+
+  # Mission-local ORACLE.md (inherits from project template)
+  VAULT_ORACLE="$VAULT_DIR/ORACLE.md"
+  if [[ -f "$ORACLE_TEMPLATE" ]]; then
+    if [[ "$DRY_RUN" == false ]]; then
+      sed \
+        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME — mission\/$MISSION_NAME/g" \
+        -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
+        -e "s/{{HYDRATION_DATE}}/$MISSION_DATE/g" \
+        -e "s/{{SHIM_FILE}}/${SHIM}.shim.json/g" \
+        -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+        "$ORACLE_TEMPLATE" > "$VAULT_ORACLE"
+      log_ok "Mission ORACLE.md generated → $VAULT_ORACLE"
+    else
+      dry_run_echo "sed [template substitution] '$ORACLE_TEMPLATE' → '$VAULT_ORACLE'"
+    fi
+  else
+    log_warn "ORACLE.md template not found — mission ORACLE.md will be empty."
+    exec_or_dry "touch '$VAULT_ORACLE'"
+  fi
+
+  # project-map.json
+  VAULT_MAP="$VAULT_DIR/project-map.json"
+  if [[ -f "$MAP_TEMPLATE" ]]; then
+    if [[ "$DRY_RUN" == false ]]; then
+      sed \
+        -e "s/{{MISSION_NAME}}/$MISSION_NAME/g" \
+        -e "s/{{MISSION_DATE}}/$MISSION_DATE/g" \
+        -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
+        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+        "$MAP_TEMPLATE" > "$VAULT_MAP"
+      log_ok "project-map.json generated → $VAULT_MAP"
+    else
+      dry_run_echo "sed [template substitution] '$MAP_TEMPLATE' → '$VAULT_MAP'"
+    fi
+  else
+    log_warn "project-map.json template not found — skipping."
+  fi
+
+  # AUDIT_LOG.md for this mission
+  VAULT_AUDIT="$VAULT_DIR/logs/AUDIT_LOG.md"
+  AUDIT_TEMPLATE="$CORE_PATH/templates/AUDIT_LOG.md"
+  if [[ -f "$AUDIT_TEMPLATE" ]]; then
+    if [[ "$DRY_RUN" == false ]]; then
+      sed \
+        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME — mission\/$MISSION_NAME/g" \
+        -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
+        -e "s/{{HYDRATION_DATE}}/$MISSION_DATE/g" \
+        "$AUDIT_TEMPLATE" > "$VAULT_AUDIT"
+      log_ok "Mission AUDIT_LOG.md initialized → $VAULT_AUDIT"
+    else
+      dry_run_echo "sed [template substitution] '$AUDIT_TEMPLATE' → '$VAULT_AUDIT'"
+    fi
+  fi
+
+  # --------------------------------------------------------------------------
+  # Step 13: Install Gavel git hooks
+  # --------------------------------------------------------------------------
+  log_section "Step 13: Installing Gavel Git Hooks"
+
+  GIT_HOOKS_DIR="$PROJECT_DIR/.git/hooks"
+  HOOK_SOURCE_DIR="$CORE_PATH/hooks"
+
+  if [[ ! -d "$GIT_HOOKS_DIR" ]]; then
+    log_error ".git/hooks directory not found at $GIT_HOOKS_DIR"
+    log_error "Ensure this is a valid git repository."
+    exit 1
+  fi
+
+  for hook in pre-commit commit-msg; do
+    HOOK_SRC="$HOOK_SOURCE_DIR/$hook"
+    HOOK_DEST="$GIT_HOOKS_DIR/$hook"
+
+    if [[ ! -f "$HOOK_SRC" ]]; then
+      log_warn "Hook source not found: $HOOK_SRC — skipping $hook"
+      continue
+    fi
+
+    if [[ -f "$HOOK_DEST" ]] && [[ "$DRY_RUN" == false ]]; then
+      log_warn "Existing $hook hook found at $HOOK_DEST — backing up to ${HOOK_DEST}.bak"
+      cp "$HOOK_DEST" "${HOOK_DEST}.bak"
+    fi
+
+    exec_or_dry "cp '$HOOK_SRC' '$HOOK_DEST'"
+    exec_or_dry "chmod +x '$HOOK_DEST'"
+    log_ok "Installed: $HOOK_DEST"
+  done
+
+  log_ok "Gavel hooks active. All commits on this repo will now pass through The Gavel."
+
+fi  # end MISSION_MODE
+
+# -----------------------------------------------------------------------------
 # Done
 # -----------------------------------------------------------------------------
 log_section "Hydration Complete"
@@ -464,25 +631,56 @@ echo ""
 echo -e "  ${GREEN}${BOLD}The Shim Syndicate v${SYNDICATE_VERSION} has been deployed to:${RESET}"
 echo -e "  ${BOLD}$PROJECT_DIR/.syndicate/${RESET}"
 echo ""
-echo -e "  ${BOLD}Next Steps:${RESET}"
-echo -e "  1. ${CYAN}Complete the ORACLE.md:${RESET}"
-echo -e "     Open ${BOLD}.syndicate/ORACLE.md${RESET} and fill in all {{placeholder}} values."
-echo -e "     The Lead will refuse to operate without a complete Oracle."
-echo ""
-echo -e "  2. ${CYAN}Start The Lead:${RESET}"
-echo -e "     Load ${BOLD}.syndicate/core/identities/THE_LEAD.md${RESET} as your system prompt in Claude."
-echo -e "     Point it to ${BOLD}.syndicate/ORACLE.md${RESET} and ${BOLD}.syndicate/logs/AUDIT_LOG.md${RESET}."
-echo ""
-echo -e "  3. ${CYAN}Invoke The Ledger for context:${RESET}"
-echo -e "     Use ${BOLD}.syndicate/core/identities/THE_LEDGER.md${RESET} as the Gemini system prompt."
-echo -e "     Provide it the full project codebase or relevant context windows."
-echo ""
-echo -e "  4. ${CYAN}Run The Gavel after each implementation session:${RESET}"
-echo -e "     Load ${BOLD}.syndicate/core/identities/THE_GAVEL.md${RESET} in your local model / OpenCode."
-echo -e "     Direct it to audit the changed files and append findings to AUDIT_LOG.md."
-echo ""
-echo -e "  5. ${CYAN}Commit the .syndicate/ directory:${RESET}"
-echo -e "     ${BOLD}git commit -m \"chore: hydrate Shim Syndicate v${SYNDICATE_VERSION}\"${RESET}"
-echo ""
+
+if [[ "$MISSION_MODE" == true ]]; then
+  echo -e "  ${BOLD}Mission Vault:${RESET}  $VAULT_DIR"
+  echo -e "  ${BOLD}Branch:${RESET}         $CURRENT_BRANCH"
+  echo ""
+  echo -e "  ${BOLD}Mission Mode — Next Steps:${RESET}"
+  echo ""
+  echo -e "  1. ${CYAN}Complete the Mission Brief:${RESET}"
+  echo -e "     ${BOLD}$VAULT_DIR/MISSION_BRIEF.md${RESET}"
+  echo -e "     Fill in objective, scope, and agent assignments."
+  echo ""
+  echo -e "  2. ${CYAN}Complete the Mission ORACLE.md:${RESET}"
+  echo -e "     ${BOLD}$VAULT_DIR/ORACLE.md${RESET}"
+  echo -e "     Fill in all {{placeholder}} values before launching agents."
+  echo ""
+  echo -e "  3. ${CYAN}Give The Ledger the project-map.json:${RESET}"
+  echo -e "     ${BOLD}$VAULT_DIR/project-map.json${RESET}"
+  echo -e "     Ask The Ledger to populate the structure, dependencies, and prior_decisions fields."
+  echo ""
+  echo -e "  4. ${CYAN}Launch the session (auto-loads vault context):${RESET}"
+  echo -e "     ${BOLD}bash syndicate-session.sh attach${RESET}"
+  echo -e "     tmux windows: [0] mission  [1] lead  [2] ledger  [3] gavel"
+  echo ""
+  echo -e "  5. ${CYAN}Gavel hooks are active — all commits are gated:${RESET}"
+  echo -e "     pre-commit : branch guard + oracle check + secrets scan"
+  echo -e "     commit-msg : Syndicate-Audit-Trace trailer required"
+  echo ""
+  echo -e "  6. ${CYAN}Commit the vault scaffold (mission context tracked):${RESET}"
+  echo -e "     ${BOLD}git add .syndicate/vault/ && git commit -m \"chore: initialize vault for $CURRENT_BRANCH"
+  echo -e "     Syndicate-Audit-Trace: @gavel PASS — $(date -u +%Y-%m-%dT%H:%M:%SZ)\"${RESET}"
+  echo ""
+else
+  echo -e "  ${BOLD}Next Steps:${RESET}"
+  echo ""
+  echo -e "  1. ${CYAN}Complete the ORACLE.md:${RESET}"
+  echo -e "     Open ${BOLD}.syndicate/ORACLE.md${RESET} and fill in all {{placeholder}} values."
+  echo -e "     The Lead will refuse to operate without a complete Oracle."
+  echo ""
+  echo -e "  2. ${CYAN}Start the session:${RESET}"
+  echo -e "     ${BOLD}bash syndicate-session.sh attach${RESET}"
+  echo -e "     tmux windows: [0] mission  [1] lead  [2] ledger  [3] gavel"
+  echo ""
+  echo -e "  3. ${CYAN}Initialize a mission branch when ready to build:${RESET}"
+  echo -e "     ${BOLD}git checkout -b mission/<name>${RESET}"
+  echo -e "     ${BOLD}bash syndicate-init.sh --mission${RESET}"
+  echo ""
+  echo -e "  4. ${CYAN}Commit the .syndicate/ directory:${RESET}"
+  echo -e "     ${BOLD}git commit -m \"chore: hydrate Shim Syndicate v${SYNDICATE_VERSION}\"${RESET}"
+  echo ""
+fi
+
 echo -e "  ${YELLOW}The Ledger, The Lead, and The Gavel are ready for deployment.${RESET}"
 echo ""

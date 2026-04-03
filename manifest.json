@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The Shim Syndicate — Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "1.0.0",
+  "active_version": "2.0.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,9 +12,64 @@
   },
   "versions": [
     {
-      "version": "1.0.0",
+      "version": "2.0.0",
       "released": "2026-04-03",
       "status": "active",
+      "description": "Branch-Based Mission Architecture. Adds mission-scoped vault isolation, syndicate-session.sh tmux manager with branch detection, Gavel pre-commit and commit-msg hooks, Mission Brief and project-map.json templates, and headless-first identity updates for all three agents.",
+      "changelog": [
+        "Added syndicate-session.sh — tmux session manager with git branch detection and auto-loading of mission ORACLE.md and project-map.json.",
+        "Added Mission Mode to syndicate-init.sh (--mission flag) — verifies mission/ branch, creates .syndicate/vault/<branch-name>/, generates Mission Brief.",
+        "Added hooks/pre-commit — Gavel branch guard, Oracle integrity check, secrets scan, Oracle prohibited pattern guard.",
+        "Added hooks/commit-msg — enforces Syndicate-Audit-Trace trailer on all mission/ branch commits.",
+        "Added templates/MISSION_BRIEF.md — operator-completed mission context template.",
+        "Added templates/project-map.json — Ledger's branch-specific Gemini context map template.",
+        "Updated THE_LEAD.md v2.0 — Branch Integrity (refuse main commits, require Syndicate-Audit-Trace).",
+        "Updated THE_LEDGER.md v2.0 — Context Switch Protocol (detect branch change, swap project-map.json, announce context load).",
+        "Updated THE_GAVEL.md v2.0 — Pre-Commit Hook Mode, AUDIT_TRACE trailer output, headless/CLI-only operation.",
+        "All shims and identities updated for headless environment: API keys from $ANTHROPIC_API_KEY / $GOOGLE_API_KEY only."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "2.0",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "2.0",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.0",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json"
+      ],
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/commit-msg"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": ["git", "jq", "tmux", "bash"],
+        "optional_cli_tools": ["claude", "gemini", "ollama", "opencode"]
+      },
+      "integrity": {
+        "released_by": "The Shim Syndicate — Branch-Based Mission Architecture",
+        "sha256_manifest": "PENDING — set on first tagged release"
+      }
+    },
+    {
+      "version": "1.0.0",
+      "released": "2026-04-03",
+      "status": "deprecated",
       "description": "Initial master core release. Establishes the three agent identities (Lead, Ledger, Gavel), shim routing layer, hydration script, and audit log template.",
       "changelog": [
         "Defined THE_LEAD identity — Principal Architect authority.",

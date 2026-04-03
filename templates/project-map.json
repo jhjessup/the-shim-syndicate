@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Branch-specific project map for The Ledger (Gemini 1M context). Loaded automatically by syndicate-session.sh when on a mission/ branch. Provides The Ledger with a structured snapshot of the codebase state relevant to this mission.",
+  "mission": {
+    "name": "{{MISSION_NAME}}",
+    "branch": "mission/{{MISSION_NAME}}",
+    "generated_date": "{{MISSION_DATE}}",
+    "generated_by": "syndicate-init.sh --mission",
+    "syndicate_version": "{{SYNDICATE_VERSION}}"
+  },
+  "project": {
+    "name": "{{PROJECT_NAME}}",
+    "primary_language": "{{PRIMARY_LANGUAGE}}",
+    "framework": "{{FRAMEWORK}}",
+    "package_manager": "{{PACKAGE_MANAGER}}",
+    "entry_points": [
+      "{{ENTRY_POINT_1}}"
+    ],
+    "test_runner": "{{TEST_RUNNER}}",
+    "build_tool": "{{BUILD_TOOL}}"
+  },
+  "structure": {
+    "description": "Directory layout relevant to this mission. The Ledger should populate this from codebase exploration at session start.",
+    "src_root": "{{SRC_ROOT}}",
+    "test_root": "{{TEST_ROOT}}",
+    "infra_root": "{{INFRA_ROOT}}",
+    "key_modules": [
+      {
+        "path": "{{MODULE_PATH_1}}",
+        "purpose": "{{MODULE_PURPOSE_1}}",
+        "exports": [],
+        "depends_on": [],
+        "touched_by_mission": false
+      }
+    ],
+    "key_configs": [
+      {
+        "path": "{{CONFIG_PATH_1}}",
+        "purpose": "{{CONFIG_PURPOSE_1}}"
+      }
+    ]
+  },
+  "mission_scope": {
+    "description": "Files and modules this mission is authorized to modify. The Ledger uses this to focus context retrieval.",
+    "in_scope_paths": [
+      "{{IN_SCOPE_PATH_1}}"
+    ],
+    "out_of_scope_paths": [
+      "{{OUT_OF_SCOPE_PATH_1}}"
+    ],
+    "protected_paths": [
+      "{{PROTECTED_PATH_1}}"
+    ]
+  },
+  "dependencies": {
+    "description": "All project dependencies with version and status. The Ledger updates this; The Gavel audits against it.",
+    "runtime": [
+      {
+        "name": "{{DEP_NAME}}",
+        "version": "{{DEP_VERSION}}",
+        "source": "{{DEP_SOURCE}}",
+        "cve_status": "clean",
+        "last_checked": "{{MISSION_DATE}}"
+      }
+    ],
+    "dev": [],
+    "peer": []
+  },
+  "prior_decisions": {
+    "description": "Architectural decisions from AUDIT_LOG.md that are relevant to this mission. The Ledger surfaces these to prevent contradictory decisions.",
+    "adr_references": [
+      {
+        "adr_id": "ADR-001",
+        "title": "{{ADR_TITLE}}",
+        "date": "{{ADR_DATE}}",
+        "status": "active",
+        "summary": "{{ADR_SUMMARY}}",
+        "relevant_to_mission": true
+      }
+    ]
+  },
+  "open_questions": {
+    "description": "Unresolved items from prior sessions that may affect this mission.",
+    "items": []
+  },
+  "context_anchors": {
+    "description": "Pre-loaded facts The Ledger should treat as ground truth at session start.",
+    "items": [
+      {
+        "fact": "{{ANCHOR_FACT_1}}",
+        "source": "{{ANCHOR_SOURCE_1}}",
+        "confidence": "HIGH"
+      }
+    ]
+  },
+  "session_state": {
+    "description": "Populated by The Ledger during an active session. Do not pre-fill — updated at runtime.",
+    "last_updated": null,
+    "files_read": [],
+    "files_modified": [],
+    "decisions_this_session": [],
+    "audits_this_session": []
+  }
+}
