@@ -93,12 +93,38 @@
       }
     ]
   },
+  "task_queue": {
+    "description": "Central task registry managed by The Ledger. Tracks all work orders across phases. Updated as tasks transition states. Dispatch packages are embedded here.",
+    "last_updated": null,
+    "active_phase": "{{PHASE}}",
+    "tasks": [
+      {
+        "task_id": "TASK-001",
+        "title": "{{TASK_TITLE}}",
+        "status": "BACKLOG",
+        "phase": "{{PHASE_NAME}}",
+        "priority": "HIGH",
+        "description": "{{TASK_DESCRIPTION}}",
+        "acceptance_criteria": [
+          "{{CRITERION_1}}"
+        ],
+        "dependencies": [],
+        "assigned_to": null,
+        "dispatch_package": null,
+        "completion_report": null,
+        "created_date": "{{CREATED_DATE}}",
+        "completed_date": null
+      }
+    ]
+  },
+
   "session_state": {
     "description": "Populated by The Ledger during an active session. Do not pre-fill — updated at runtime.",
     "last_updated": null,
     "files_read": [],
     "files_modified": [],
     "decisions_this_session": [],
-    "audits_this_session": []
+    "audits_this_session": [],
+    "operatives_spawned": []
   }
 }

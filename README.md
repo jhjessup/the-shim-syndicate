@@ -11,8 +11,11 @@ The Shim Syndicate is a structured, version-controlled system for deploying a mu
 | Agent | Handle | Default Model | Responsibility |
 |-------|--------|---------------|----------------|
 | **The Lead** | `@lead` | Claude (Sonnet 4.6+) | Principal Architect. Technical authority. Decision maker. |
-| **The Ledger** | `@ledger` | Gemini (2.5 Pro+) | Context Librarian. Research. Institutional memory. |
+| **The Ledger** | `@ledger` | Gemini (2.5 Pro+) | Context Librarian. Task Decomposer. Project Manager. |
 | **The Gavel** | `@gavel` | Local (Qwen2.5-Coder / OpenCode) | Independent Auditor. Security. Code quality. Compliance. |
+| **The Operative** | `@operative` | Task-appropriate (Haiku, Flash, or local) | Bounded Executor. Receives dispatch packages. Produces deliverables. |
+
+**Architecture:** Lead and Ledger are orchestrators (decision and planning). Gavel and Operatives are enforcement/execution layers (audit and implementation).
 
 Each agent operates from a system instruction defined in `identities/`. These identities are abstract — they contain no project-specific logic. Project context is injected via the `ORACLE.md` file generated at hydration time.
 
@@ -28,8 +31,9 @@ the-shim-syndicate/
 │
 ├── identities/
 │   ├── THE_LEAD.md              # Lead identity — architecture and decision authority
-│   ├── THE_LEDGER.md            # Ledger identity — context and research authority
-│   └── THE_GAVEL.md             # Gavel identity — audit and compliance authority
+│   ├── THE_LEDGER.md            # Ledger identity — context and task dispatch authority
+│   ├── THE_GAVEL.md             # Gavel identity — audit and compliance authority
+│   └── THE_OPERATIVE.md         # Operative identity — bounded task execution
 │
 ├── shims/
 │   ├── routing.schema.json      # JSON Schema for all shim configurations

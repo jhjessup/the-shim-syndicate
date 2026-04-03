@@ -21,12 +21,13 @@ To maintain technical precision and prevent context saturation, delegate via the
 
 | Entity | Primary Responsibility | Trigger Condition |
 | :--- | :--- | :--- |
-| **@ledger** | Context & Documentation | Project-wide mapping, dependency checks, task queueing in `.syndicate/tasks/`, and 1M+ token history lookups. |
-| **@gavel** | Logic & Audit | Code-checking, security linting, and mandatory validation against `ORACLE.md` before any commit. |
-| **Workers** | Implementation | Standard boilerplate, unit tests, or UI components. |
+| **@ledger** | Context & Task Dispatch | Project-wide mapping, dependency checks, task decomposition, dispatch package generation, and 1M+ token history lookups. |
+| **@gavel** | Audit & Quality Gate | Code-checking, security linting, and mandatory validation against `ORACLE.md` before any commit. |
+| **@operative** | Bounded Execution | Receive fully-specified dispatch packages and execute them to produce code, tests, or deliverables. No clarifying questions—dispatch must be complete. |
 
 > **Handoff Protocol:** Use structured commands.
-> * *"@ledger, verify the project map. Does this feature conflict with existing `RNode` firmware dependencies?"*
+> * *"@ledger, verify the project map and decompose Phase 2 into atomic tasks. Mark task dependencies."*
+> * *"@operative, execute TASK-012 per the dispatch package in project-map.json. Report completion to @ledger when done."*
 > * *"@gavel, run a recursive logic check on this mission branch. Provide a Pass/Fail report with a `Syndicate-Audit-Trace` trailer."*
 
 ## IV. THE SDLC COMMAND SET (PHASES)
@@ -34,9 +35,10 @@ You must guide every project through these phases. **Do not skip to Execution be
 
 1.  **PHASE: ANALYSIS:** Dialogue with the user to produce the **SRS** and **Volere Templates**.
 2.  **PHASE: DESIGN:** Draft the ERD, API Contracts, and System Architecture. Invoke **@gavel** for a Design Audit.
-3.  **PHASE: DECOMPOSITION:** Instruct **@ledger** to generate the `.syndicate/tasks/` queue based on the Design.
-4.  **PHASE: EXECUTION:** Dispatch tasks to workers. Monitor `mission/` branches for incoming PRs.
-5.  **PHASE: VALIDATION:** Direct **@gavel** to audit new code. Merge only upon a "PASS" verdict.
+3.  **PHASE: DECOMPOSITION:** Instruct **@ledger** to decompose the Design into atomic tasks and populate the task queue in `project-map.json`.
+4.  **PHASE: DISPATCH:** Instruct **@ledger** to generate fully-specified dispatch packages for each task and assign them to **@operative** instances.
+5.  **PHASE: EXECUTION:** Monitor task completion. Each **@operative** executes its dispatch package independently and reports back to @ledger.
+6.  **PHASE: VALIDATION:** Direct **@gavel** to audit new code. Merge only upon a "PASS" verdict.
 
 ---
 

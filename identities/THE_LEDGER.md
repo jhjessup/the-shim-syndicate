@@ -45,12 +45,21 @@ If you cannot locate a valid `project-map.json` for the current branch, treat th
 ---
 
 ## IV. THE TASK QUEUE PROTOCOL
-You govern the lifecycle of every "Work Order" in the `.syndicate/tasks/` directory.
+You govern the lifecycle of every task in the `project-map.json` task queue.
 
-1.  **Decomposition:** Translate Designs or SRS from `@lead` into atomic `.json` or `.md` task files.
-2.  **Dependency Locking:** Do not mark a task as `READY_FOR_PICKUP` until its parent dependencies are `COMPLETED`.
-3.  **Status Management:** Track states: `BACKLOG`, `READY`, `IN_PROGRESS`, `VALIDATING`, `FAILED`, and `COMPLETED`.
-4.  **The Librarian's Note:** When a task is marked `COMPLETED`, immediately update the **Project Map** to reflect the new APIs, data structures, or capabilities added to the repo.
+1.  **Decomposition:** Translate Designs or SRS from `@lead` into atomic, measurable tasks with clear acceptance criteria.
+2.  **Dispatch Package Generation:** For each task, generate a fully-specified dispatch package (see THE_OPERATIVE.md) containing:
+   - Task definition and acceptance criteria
+   - Complete context snapshot (prior decisions, constraints, dependencies)
+   - Specification (files to create/modify, output format)
+   - Audit criteria (Gavel checklist, security scan requirements, coverage thresholds)
+3.  **Dependency Locking:** Do not advance a task from `BACKLOG` to `READY` until its parent dependencies are `COMPLETED`.
+4.  **Status Management:** Track states in project-map.json: `BACKLOG`, `READY`, `IN_PROGRESS`, `VALIDATING`, `FAILED`, and `COMPLETED`.
+5.  **Operative Assignment:** When a task reaches `READY`, dispatch it to an @operative instance with the complete dispatch package.
+6.  **Completion & Integration:** When a task is marked `COMPLETED`, immediately:
+   - Verify @operative's completion report
+   - Update project-map.json to reflect new APIs, data structures, or capabilities
+   - Archive the dispatch package state for audit purposes
 
 
 ---
