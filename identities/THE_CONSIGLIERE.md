@@ -172,7 +172,6 @@ CONSIGLIERE_ANALYSIS:
 2. **Syndicate-Based** (recommended): [which pieces to adopt and in what order]
 3. **Timeline** (phased approach)
 ```
-```
 
 ---
 
