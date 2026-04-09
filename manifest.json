@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The Shim Syndicate — Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "3.1.0",
+  "active_version": "3.2.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,9 +12,80 @@
   },
   "versions": [
     {
+      "version": "3.2.0",
+      "released": "2026-04-08",
+      "status": "active",
+      "description": "Efficiency Tier Integration. Adds Phase 0 Confidence Gate, Surgical Scope, and Tool Minimalism (Silent Drip) to @lead and @operative. Formalizes sub-agent model routing in the Delegation Matrix. Introduces sops/CONTEXT_HYGIENE.md as an operator SOP for session lifecycle management. Adds Session Resource Budget to ORACLE.md template.",
+      "changelog": [
+        "Updated THE_LEAD.md v3.1 — Added Phase 0: Confidence Gate with explicit trigger conditions and interrogation protocol before any execution phase.",
+        "Updated THE_LEAD.md v3.1 — Added Operational Philosophy §5 Surgical Scope: targeted file reads, no undirected directory scanning.",
+        "Updated THE_LEAD.md v3.1 — Added Operational Philosophy §6 Tool Minimalism (Silent Drip): CLI-first, MCP tools only for capabilities unavailable via CLI.",
+        "Updated THE_LEAD.md v3.1 — Expanded Delegation Matrix with explicit Operative Model Binding table: task type to model binding (Haiku/Flash for research, Sonnet/Pro for implementation, local for audit, nested sub-agent for 3+ file surveys).",
+        "Updated THE_OPERATIVE.md v1.1 — Added Surgical Scope and Tool Minimalism to Operational Philosophy. Sub-agents return actionable delta only — no raw content.",
+        "Created sops/CONTEXT_HYGIENE.md v1.0 — Operator SOP for session lifecycle: Snapshot & Compact procedure, 5-minute cache boundary recovery, Session Handoff Block format, anti-pattern register. CLI-specific commands (/compact, /context, /cost, /clear) correctly scoped to operator SOP rather than agent identity files.",
+        "Updated templates/ORACLE.md — Added §6.4 Session Resource Budget with configurable thresholds for context hygiene trigger, operative delegation threshold, synthesis format, and sub-agent model bindings.",
+        "Eliminated 'High Consigliere v5.0' ghost identity from operator-submitted tier proposal — no such identity exists in the Syndicate. Confidence gate wired to @lead, not a phantom role."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "3.1",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "3.0",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.0",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        },
+        "operative": {
+          "identity_version": "1.1",
+          "file": "identities/THE_OPERATIVE.md",
+          "default_model": "task-appropriate"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json"
+      ],
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/commit-msg"
+      ],
+      "sops_available": [
+        "sops/CONTEXT_HYGIENE.md"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode"
+        ]
+      },
+      "integrity": {
+        "released_by": "The Consigliere v1.0 — Efficiency Tier Integration",
+        "sha256_manifest": "PENDING — set on first tagged release"
+      }
+    },
+    {
       "version": "3.1.0",
       "released": "2026-04-03",
-      "status": "active",
+      "status": "superseded",
       "description": "Operative Tier & Task Queue Integration. Introduces The Operative agent (bounded execution tier), formalizes dispatch package protocol, integrates task queue into project-map.json, and clarifies orchestrator/executor hierarchy.",
       "changelog": [
         "Added THE_OPERATIVE.md v1.0 — New fourth agent identity for bounded task execution with dispatch package contract.",
@@ -60,8 +131,18 @@
         "min_claude_version": "claude-sonnet-4-6",
         "min_gemini_version": "gemini-2.5-pro",
         "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": ["git", "jq", "tmux", "bash"],
-        "optional_cli_tools": ["claude", "gemini", "ollama", "opencode"]
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode"
+        ]
       },
       "integrity": {
         "released_by": "The Shim Syndicate — Operative Tier Integration",
@@ -115,8 +196,18 @@
         "min_claude_version": "claude-sonnet-4-6",
         "min_gemini_version": "gemini-2.5-pro",
         "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": ["git", "jq", "tmux", "bash"],
-        "optional_cli_tools": ["claude", "gemini", "ollama", "opencode"]
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode"
+        ]
       },
       "integrity": {
         "released_by": "The Shim Syndicate — Branch-Based Mission Architecture",
@@ -167,8 +258,17 @@
         "min_claude_version": "claude-sonnet-4-6",
         "min_gemini_version": "gemini-2.5-pro",
         "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": ["claude", "gemini", "ollama", "opencode"],
-        "optional_cli_tools": ["git", "jq", "curl"]
+        "required_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode"
+        ],
+        "optional_cli_tools": [
+          "git",
+          "jq",
+          "curl"
+        ]
       },
       "integrity": {
         "released_by": "The Shim Syndicate — Bootstrap",
@@ -192,6 +292,17 @@
   },
   "deployment_registry": {
     "description": "Projects that have been hydrated from this Syndicate core. Entries are added by syndicate-init.sh at hydration time. This allows retroactive auditing of which Syndicate version was active for any given project.",
-    "entries": []
+    "entries": [
+      {
+        "project": "concierge-hub",
+        "operator": "Jonathan Jessup",
+        "syndicate_version": "3.2.0",
+        "hydration_date": "2026-04-08",
+        "hydration_timestamp": "2026-04-08T23:43:49Z",
+        "shim_used": "claude.shim.json",
+        "integration_mode": "symlink",
+        "project_path": "/root/concierge-hub"
+      }
+    ]
   }
 }

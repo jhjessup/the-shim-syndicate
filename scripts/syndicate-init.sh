@@ -300,6 +300,25 @@ exec_or_dry "cp '$SHIM_SOURCE' '$SHIM_DEST'"
 log_ok "Installed shim config → $STUB_DIR/routing.json (source: ${SHIM}.shim.json)"
 
 # -----------------------------------------------------------------------------
+# Step 3.1: Inject Gavel-specific tool permissions
+# -----------------------------------------------------------------------------
+log_section "Step 3.1: Injecting Gavel-specific Tool Permissions"
+
+if [[ "$DRY_RUN" == false ]]; then
+  # Read the current routing.json
+  CURRENT_ROUTING_JSON=$(cat "$SHIM_DEST")
+
+  # Use jq to add the --read-only-bash flag to Gavel's cli_flags
+  UPDATED_ROUTING_JSON=$(echo "$CURRENT_ROUTING_JSON" | jq '.agents.gavel.backend_config.cli_flags += ["--read-only-bash"]')
+
+  # Write the modified JSON back
+  echo "$UPDATED_ROUTING_JSON" > "$SHIM_DEST"
+  log_ok "Injected --read-only-bash flag for The Gavel in $SHIM_DEST"
+else
+  dry_run_echo "jq '.agents.gavel.backend_config.cli_flags += ["--read-only-bash"]' '$SHIM_DEST' > '$SHIM_DEST'"
+fi
+
+# -----------------------------------------------------------------------------
 # Step 4: Generate ORACLE.md from template
 # -----------------------------------------------------------------------------
 log_section "Step 4: Generating ORACLE.md"

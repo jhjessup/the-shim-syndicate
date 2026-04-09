@@ -194,6 +194,19 @@ Conditions that must be met before any deployment.
 - [ ] AUDIT_LOG.md updated for the session
 - [ ] {{ADDITIONAL_GATE_1}}
 
+### 6.4 Session Resource Budget
+<!--
+Thresholds governing context hygiene and sub-agent delegation for this project.
+These are operator-defined per project — defaults below are recommendations.
+-->
+```
+CONTEXT_HYGIENE_THRESHOLD: {{e.g., 60%}}   # Trigger snapshot + /compact at this context load
+OPERATIVE_DELEGATION_THRESHOLD: {{e.g., 3 files}}  # Spawn sub-agent when research spans more files than this
+OPERATIVE_SYNTHESIS_FORMAT: delta_only     # Sub-agents return actionable delta only — no raw content
+SUB_AGENT_MODEL_RESEARCH: {{e.g., claude-haiku-3 | gemini-flash}}  # Model for log/doc analysis operatives
+SUB_AGENT_MODEL_IMPLEMENTATION: {{e.g., claude-sonnet-4-6}}       # Model for code-writing operatives
+```
+
 ---
 
 ## 7. Oracle Version History
