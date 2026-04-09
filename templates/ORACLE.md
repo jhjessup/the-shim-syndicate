@@ -135,7 +135,13 @@ Every exception requires an operator signature and a remediation plan.
 |-------------|----------------|--------|-------------------|--------|
 | SEC-EX-001 | {{item}} | {{reason}} | {{name — date}} | {{date or "None"}} |
 
-### 4.4 Severity Threshold Overrides
+### 4.4 Testing Doctrine
+```
+TEST_DOCTRINE: .syndicate/TEST_DOCTRINE.md
+```
+All test generation, coverage auditing, and test quality findings are governed by the Testing Doctrine. The Gavel reads `TEST_DOCTRINE.md` as a mandatory supplement to its standard audit checklist. Coverage thresholds in §4.1 above define the numeric floors; the Doctrine defines what those numbers must measure and which behaviors are categorically required regardless of coverage percentage.
+
+### 4.5 Severity Threshold Overrides
 <!--
 Adjust default severity thresholds if the project's risk profile requires it.
 Example: A medical device project might escalate all MED findings to HIGH.
@@ -190,7 +196,8 @@ MAX_SUBJECT_LENGTH: {{e.g., 72 characters}}
 Conditions that must be met before any deployment.
 -->
 - [ ] All Gavel audit findings resolved (Critical/High are hard blockers)
-- [ ] Test coverage thresholds met (see 4.1)
+- [ ] Test coverage thresholds met (see §4.1)
+- [ ] Mandatory Test Matrix satisfied (see TEST_DOCTRINE.md §3.2)
 - [ ] AUDIT_LOG.md updated for the session
 - [ ] {{ADDITIONAL_GATE_1}}
 

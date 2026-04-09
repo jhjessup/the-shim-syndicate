@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The Shim Syndicate — Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "3.2.0",
+  "active_version": "3.3.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,9 +12,83 @@
   },
   "versions": [
     {
+      "version": "3.3.0",
+      "released": "2026-04-09",
+      "status": "active",
+      "description": "Test Doctrine Integration. Introduces templates/TEST_DOCTRINE.md as a two-tier testing specification system. Universal philosophy in the core template; project-specific instantiation in .syndicate/TEST_DOCTRINE.md at hydration time. Extends syndicate-init.sh to stamp the template, updates the pre-commit hook to enforce doctrine integrity, and wires ORACLE.md §4 to reference the doctrine file.",
+      "changelog": [
+        "Added templates/TEST_DOCTRINE.md v1.0 — Universal test taxonomy (Unit/Service/Endpoint/Integration), five composability axioms (AX-1 through AX-5), Gavel audit criteria for test quality, test organization standards, and placeholder sections for project-specific instantiation.",
+        "Updated scripts/syndicate-init.sh v2.1 — Added Step 4.1: stamps TEST_DOCTRINE.md from template into .syndicate/ at project hydration time, substituting PROJECT_NAME, SYNDICATE_VERSION, HYDRATION_DATE, and OPERATOR_NAME. Updated Step 6 to include test_doctrine path in config.json. Updated mission mode (Step 12) to also stamp TEST_DOCTRINE.md into mission vault.",
+        "Updated hooks/pre-commit v2.1 — Added CHECK-5: Test Doctrine Integrity. Verifies .syndicate/TEST_DOCTRINE.md exists (WARN if absent) and contains no unfilled {{placeholder}} tokens (FAIL if present). Updated check count from 4 to 5.",
+        "Updated templates/ORACLE.md — Added §4.4 Testing Doctrine with TEST_DOCTRINE path reference and description of the Doctrine's role relative to coverage thresholds."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "3.1",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "3.0",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.0",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        },
+        "operative": {
+          "identity_version": "1.1",
+          "file": "identities/THE_OPERATIVE.md",
+          "default_model": "task-appropriate"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json"
+      ],
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/commit-msg"
+      ],
+      "sops_available": [
+        "sops/CONTEXT_HYGIENE.md"
+      ],
+      "templates_available": [
+        "templates/ORACLE.md",
+        "templates/AUDIT_LOG.md",
+        "templates/MISSION_BRIEF.md",
+        "templates/project-map.json",
+        "templates/TEST_DOCTRINE.md"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode"
+        ]
+      },
+      "integrity": {
+        "released_by": "The Lead (Claude) — Test Doctrine Integration",
+        "sha256_manifest": "PENDING — set on first tagged release"
+      }
+    },
+    {
       "version": "3.2.0",
       "released": "2026-04-08",
-      "status": "active",
+      "status": "superseded",
       "description": "Efficiency Tier Integration. Adds Phase 0 Confidence Gate, Surgical Scope, and Tool Minimalism (Silent Drip) to @lead and @operative. Formalizes sub-agent model routing in the Delegation Matrix. Introduces sops/CONTEXT_HYGIENE.md as an operator SOP for session lifecycle management. Adds Session Resource Budget to ORACLE.md template.",
       "changelog": [
         "Updated THE_LEAD.md v3.1 — Added Phase 0: Confidence Gate with explicit trigger conditions and interrogation protocol before any execution phase.",

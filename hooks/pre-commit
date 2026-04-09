@@ -2,7 +2,7 @@
 # =============================================================================
 # pre-commit — The Gavel's Branch Integrity Hook
 # =============================================================================
-# Version: 2.0.0
+# Version: 2.1.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
@@ -19,6 +19,10 @@
 #   [CHECK-4] ORACLE ANCHORS  — Verifies staged files do not introduce patterns
 #                               explicitly prohibited in the mission ORACLE.md
 #                               (reads PROHIBITED PATTERNS section if present).
+#   [CHECK-5] TEST DOCTRINE   — Verifies .syndicate/TEST_DOCTRINE.md exists and
+#                               contains no unfilled {{placeholder}} tokens.
+#                               Missing file is a warning; unfilled tokens are a
+#                               hard FAIL (same treatment as ORACLE.md).
 #
 # INSTALLATION:
 #   # From the Syndicate core — install into a target project:
@@ -261,6 +265,43 @@ fi
 echo ""
 
 # -----------------------------------------------------------------------------
+# CHECK-5: Test Doctrine Integrity
+# Verify .syndicate/TEST_DOCTRINE.md exists and has no unfilled placeholders.
+# Missing file → warning (project may not yet use the doctrine).
+# Unfilled placeholders → hard FAIL (same policy as ORACLE.md).
+# -----------------------------------------------------------------------------
+echo -e "${BOLD}── CHECK-5: Test Doctrine Integrity ──${RESET}"
+
+DOCTRINE_PATH="$STUB_DIR/TEST_DOCTRINE.md"
+
+# On mission/ branches, also check for a vault-local TEST_DOCTRINE.md
+if [[ "$IS_MISSION" == true && -f "$MISSION_VAULT/TEST_DOCTRINE.md" ]]; then
+  DOCTRINE_PATH="$MISSION_VAULT/TEST_DOCTRINE.md"
+fi
+
+if [[ ! -f "$DOCTRINE_PATH" ]]; then
+  warn "TEST_DOCTRINE.md not found at $DOCTRINE_PATH."
+  warn "Test Doctrine is required for complete Gavel auditing."
+  warn "Generate it:  bash syndicate-init.sh  (or copy from Syndicate Core template)"
+else
+  pass "TEST_DOCTRINE.md found: $DOCTRINE_PATH"
+
+  # Check for unfilled placeholder tokens
+  DOCTRINE_UNFILLED=$(grep -oE '\{\{[A-Z_]+\}\}' "$DOCTRINE_PATH" 2>/dev/null || true)
+  if [[ -n "$DOCTRINE_UNFILLED" ]]; then
+    fail "TEST_DOCTRINE.md contains unfilled placeholders — complete these before committing:"
+    while IFS= read -r token; do
+      fail "  → $token"
+    done <<< "$DOCTRINE_UNFILLED"
+    fail "Refer to §2.2, §3.1, and §3.2 of the doctrine for guidance on what to fill in."
+  else
+    pass "TEST_DOCTRINE.md is fully populated (no unfilled placeholders)."
+  fi
+fi
+
+echo ""
+
+# -----------------------------------------------------------------------------
 # Result
 # -----------------------------------------------------------------------------
 echo -e "${BOLD}── Gavel Pre-Commit Verdict ──${RESET}"
@@ -276,7 +317,7 @@ if [[ "$FAIL_COUNT" -gt 0 ]]; then
   exit 1
 else
   echo ""
-  echo -e "${GREEN}${BOLD}  COMMIT CLEARED — All $((4)) checks passed${RESET}"
+  echo -e "${GREEN}${BOLD}  COMMIT CLEARED — All $((5)) checks passed${RESET}"
   [[ "$WARN_COUNT" -gt 0 ]] && \
     echo -e "  ${YELLOW}${WARN_COUNT} warning(s) noted — review recommended but not blocking.${RESET}"
   echo ""

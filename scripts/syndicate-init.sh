@@ -2,7 +2,7 @@
 # =============================================================================
 # syndicate-init.sh — The Shim Syndicate Project Hydration Script
 # =============================================================================
-# Version: 2.0.0
+# Version: 2.1.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
@@ -45,7 +45,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
-SCRIPT_VERSION="2.0.0"
+SCRIPT_VERSION="2.1.0"
 SYNDICATE_DIR=".syndicate"
 REQUIRED_COMMANDS=("git" "jq")
 OPTIONAL_COMMANDS=("claude" "gemini" "ollama" "opencode")
@@ -345,6 +345,35 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# Step 4.1: Generate TEST_DOCTRINE.md from template
+# -----------------------------------------------------------------------------
+log_section "Step 4.1: Generating TEST_DOCTRINE.md"
+
+DOCTRINE_TEMPLATE="$CORE_PATH/templates/TEST_DOCTRINE.md"
+DOCTRINE_DEST="$STUB_DIR/TEST_DOCTRINE.md"
+
+if [[ ! -f "$DOCTRINE_TEMPLATE" ]]; then
+  log_warn "TEST_DOCTRINE.md template not found at: $DOCTRINE_TEMPLATE — skipping."
+  log_warn "Test Doctrine will not be available until the template is present in Syndicate Core."
+else
+  if [[ "$DRY_RUN" == false ]]; then
+    sed \
+      -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+      -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
+      -e "s/{{HYDRATION_DATE}}/$HYDRATION_DATE/g" \
+      -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+      "$DOCTRINE_TEMPLATE" > "$DOCTRINE_DEST"
+    log_ok "Generated TEST_DOCTRINE.md → $DOCTRINE_DEST"
+    log_info "Complete all remaining {{placeholder}} sections in TEST_DOCTRINE.md before committing:"
+    log_info "  §2.2  PROJECT_COMPOSABILITY_AXIOMS — Architecture-specific testability rules"
+    log_info "  §3.1  COVERAGE_THRESHOLDS          — Per-layer numeric thresholds"
+    log_info "  §3.2  MANDATORY_TEST_MATRIX        — Domain-specific required test behaviors"
+  else
+    dry_run_echo "sed [template substitution] '$DOCTRINE_TEMPLATE' → '$DOCTRINE_DEST'"
+  fi
+fi
+
+# -----------------------------------------------------------------------------
 # Step 5: Initialize AUDIT_LOG.md
 # -----------------------------------------------------------------------------
 log_section "Step 5: Initializing AUDIT_LOG.md"
@@ -387,6 +416,7 @@ if [[ "$DRY_RUN" == false ]]; then
   "active_shim": "${SHIM}.shim.json",
   "paths": {
     "oracle": ".syndicate/ORACLE.md",
+    "test_doctrine": ".syndicate/TEST_DOCTRINE.md",
     "audit_log": ".syndicate/logs/AUDIT_LOG.md",
     "routing": ".syndicate/routing.json",
     "core": ".syndicate/core"
@@ -589,6 +619,24 @@ if [[ "$MISSION_MODE" == true ]]; then
     log_warn "project-map.json template not found — skipping."
   fi
 
+  # TEST_DOCTRINE.md for this mission (inherits from project template)
+  VAULT_DOCTRINE="$VAULT_DIR/TEST_DOCTRINE.md"
+  if [[ -f "$DOCTRINE_TEMPLATE" ]]; then
+    if [[ "$DRY_RUN" == false ]]; then
+      sed \
+        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME — mission\/$MISSION_NAME/g" \
+        -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
+        -e "s/{{HYDRATION_DATE}}/$MISSION_DATE/g" \
+        -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+        "$DOCTRINE_TEMPLATE" > "$VAULT_DOCTRINE"
+      log_ok "Mission TEST_DOCTRINE.md generated → $VAULT_DOCTRINE"
+    else
+      dry_run_echo "sed [template substitution] '$DOCTRINE_TEMPLATE' → '$VAULT_DOCTRINE'"
+    fi
+  else
+    log_warn "TEST_DOCTRINE.md template not found — mission doctrine will be absent."
+  fi
+
   # AUDIT_LOG.md for this mission
   VAULT_AUDIT="$VAULT_DIR/logs/AUDIT_LOG.md"
   AUDIT_TEMPLATE="$CORE_PATH/templates/AUDIT_LOG.md"
@@ -665,6 +713,11 @@ if [[ "$MISSION_MODE" == true ]]; then
   echo -e "     ${BOLD}$VAULT_DIR/ORACLE.md${RESET}"
   echo -e "     Fill in all {{placeholder}} values before launching agents."
   echo ""
+  echo -e "  2b. ${CYAN}Complete the Mission TEST_DOCTRINE.md:${RESET}"
+  echo -e "     ${BOLD}$VAULT_DIR/TEST_DOCTRINE.md${RESET}"
+  echo -e "     Fill in §2.2 (axioms), §3.1 (thresholds), §3.2 (mandatory matrix)."
+  echo -e "     The Gavel will FAIL commits with unfilled {{placeholder}} tokens."
+  echo ""
   echo -e "  3. ${CYAN}Give The Ledger the project-map.json:${RESET}"
   echo -e "     ${BOLD}$VAULT_DIR/project-map.json${RESET}"
   echo -e "     Ask The Ledger to populate the structure, dependencies, and prior_decisions fields."
@@ -687,6 +740,11 @@ else
   echo -e "  1. ${CYAN}Complete the ORACLE.md:${RESET}"
   echo -e "     Open ${BOLD}.syndicate/ORACLE.md${RESET} and fill in all {{placeholder}} values."
   echo -e "     The Lead will refuse to operate without a complete Oracle."
+  echo ""
+  echo -e "  1b. ${CYAN}Complete the TEST_DOCTRINE.md:${RESET}"
+  echo -e "     Open ${BOLD}.syndicate/TEST_DOCTRINE.md${RESET} and fill in:"
+  echo -e "     §2.2 PROJECT_COMPOSABILITY_AXIOMS, §3.1 COVERAGE_THRESHOLDS, §3.2 MANDATORY_TEST_MATRIX"
+  echo -e "     The Gavel will FAIL commits with unfilled {{placeholder}} tokens."
   echo ""
   echo -e "  2. ${CYAN}Start the session:${RESET}"
   echo -e "     ${BOLD}bash syndicate-session.sh attach${RESET}"
