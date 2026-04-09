@@ -374,6 +374,29 @@ refactor(identity): convert THE_GAVEL headings to Roman numeral scheme
 
 ---
 
+## 21. Section Symbol (§)
+
+Use the section symbol `§` (U+00A7) when referencing a numbered section within a document or across documents.
+
+**Format rules:**
+
+- No space between `§` and the section number: `§3.2`, `§4.1`, `§III.1` — never `§ 3.2`.
+- For within-document references, use `§` followed directly by the heading number: `§4.1`, `§III`, `§2.2`.
+- For cross-document references, write the filename in backticks, then a space, then the section reference: `` `ORACLE.md` §4.1 ``, `` `TEST_DOCTRINE.md` §3.2 ``.
+- Use the section symbol only for numeric or Roman-numeral headings. Do not use it to reference unnumbered prose headings — quote or name those directly.
+
+```markdown
+<!-- Within-document -->
+Coverage thresholds are defined in §4.1.
+
+<!-- Cross-document -->
+The Gavel reads `TEST_DOCTRINE.md` §3.2 at audit time.
+```
+
+Never spell out "section" in place of `§` when the reference is to a numbered heading. Use `§` consistently.
+
+---
+
 ## 20. Known Deviations in Existing Files
 
 The following deviations from this guide exist in the current codebase. Correct them on next substantive edit of the affected file.
@@ -384,7 +407,7 @@ The following deviations from this guide exist in the current codebase. Correct 
 | `THE_LEAD.md` | 8 | Section title has `THE` prefix: `THE CORE DIRECTIVE` | `CORE DIRECTIVE` |
 | `THE_LEAD.md` | 19 | Missing `---` break before `## III.` | Add `---` between sections II and III |
 | `THE_LEDGER.md` | 15 | Typo in section heading: `PHILOSOPIY` | `PHILOSOPHY` |
-| `THE_LEDGER.md` | 30 | Duplicate `2.` in ordered list under § III.1 | Renumber to `3.` |
+| `THE_LEDGER.md` | 30 | Duplicate `2.` in ordered list under §III.1 | Renumber to `3.` |
 | `THE_LEDGER.md` | 78 | Typo in protocol label: `Inboand` | `Inbound` |
 | `THE_LEDGER.md` | 89 | Typo in protocol label: `Outboand` | `Outbound` |
 | `THE_GAVEL.md` | all | H2 section headings use natural prose, not Roman numerals | Refactor to `## I. SYSTEM INSTRUCTION`, `## II. CORE OPERATING PRINCIPLES`, etc. |
