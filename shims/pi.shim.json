@@ -43,7 +43,11 @@
       {
         "name": "openrouter",
         "designated_models": [
-          "google/gemini-2.0-pro-exp-02-05:free"
+          "google/gemini-3.1-flash-lite-preview",
+          "google/gemini-3-flash-preview",
+          "google/gemma-4-31b-it:free",
+          "qwen/qwen3-coder:free",
+          "openrouter/free"
         ],
         "env_var_api_key": "OPENROUTER_API_KEY",
         "notes": "Unified interface for proprietary and large open-weight models."
@@ -137,7 +141,7 @@
       "secondary_backend": "gemini",
       "backend_config": {
         "provider": "openrouter",
-        "model": "google/gemini-2.0-pro-exp-02-05:free",
+        "model": "google/gemini-3.1-flash-lite-preview",
         "model_constraints": {
           "min_context_tokens": 32768,
           "max_output_tokens": 8192,
@@ -243,7 +247,7 @@
   ],
   "invocation_template": {
     "opencode_logic": "pi --provider opencode --model nemotron-3-super-free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
-    "openrouter_context": "pi --provider openrouter --model google/gemini-2.0-pro-exp-02-05:free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "openrouter_context": "pi --provider openrouter --model google/gemini-3.1-flash-lite-preview --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
     "local_audit": "pi --provider opencode --model qwen2.5-coder:32b --system-prompt \"$(cat .syndicate/core/identities/THE_GAVEL.md)\" --print \"<PROMPT>\""
   },
   "fallback_chain": [
