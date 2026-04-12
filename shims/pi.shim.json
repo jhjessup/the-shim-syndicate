@@ -2,7 +2,7 @@
   "$schema": "./routing.schema.json",
   "syndicate_version": "1.0.0",
   "routing_mode": "fallback",
-  "_comment": "pi-primary shim. Use this configuration when pi is the CLI executor for sub-agent and operative dispatch. pi is a multi-provider router CLI that supports opencode, nvidia, anthropic, and google backends. It excels at headless, non-interactive, print-mode task execution — ideal for @operative and bounded @lead workloads. Identity injection is handled via --system-prompt and --append-system-prompt flags.",
+  "_comment": "pi-primary shim. Use this configuration when pi is the CLI executor for sub-agent and operative dispatch. pi is a multi-provider router CLI that supports opencode, nvidia, anthropic, and google backends. It excels at headless, non-interactive, print-mode task execution \u2014 ideal for @operative and bounded @lead workloads. Identity injection is handled via --system-prompt and --append-system-prompt flags.",
   "cli_tool": "pi",
   "cli_profile": {
     "executable": "pi",
@@ -14,28 +14,58 @@
     "tools_flag": "--tools",
     "no_session_flag": "--no-session",
     "thinking_flag": "--thinking",
-    "available_tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
-    "default_tools": ["read", "bash", "edit", "write"],
+    "available_tools": [
+      "read",
+      "bash",
+      "edit",
+      "write",
+      "grep",
+      "find",
+      "ls"
+    ],
+    "default_tools": [
+      "read",
+      "bash",
+      "edit",
+      "write"
+    ],
     "supported_providers": [
       {
         "name": "opencode",
+        "designated_models": [
+          "nemotron-3-super-free",
+          "deepseek-v3",
+          "qwen-2.5-72b"
+        ],
         "env_var_api_key": null,
-        "notes": "Routes through the opencode provider — supports a wide model catalog including nemotron, deepseek, and others."
-      },
-      {
-        "name": "nvidia",
-        "env_var_api_key": "NVIDIA_API_KEY",
-        "notes": "NVIDIA NIM API. Use for nemotron and other NVIDIA-hosted models."
-      },
-      {
-        "name": "anthropic",
-        "env_var_api_key": "ANTHROPIC_API_KEY",
-        "notes": "Anthropic Claude models via pi. Alternative to the native claude CLI."
+        "notes": "Primary open-weight provider. Nemotron for complex logic, DeepSeek for speed/efficiency."
       },
       {
         "name": "google",
+        "designated_models": [
+          "gemini-2.5-pro",
+          "gemini-2.5-flash"
+        ],
         "env_var_api_key": "GEMINI_API_KEY",
-        "notes": "Google Gemini models via pi. Alternative to the native gemini CLI."
+        "notes": "Large context provider. Use Pro for 100k+ token research, Flash for rapid feedback."
+      },
+      {
+        "name": "anthropic",
+        "designated_models": [
+          "claude-3-5-sonnet-latest",
+          "claude-3-5-haiku-latest"
+        ],
+        "env_var_api_key": "ANTHROPIC_API_KEY",
+        "notes": "State-of-the-art coding and reasoning. Sonnet for implementation, Haiku for refactoring."
+      },
+      {
+        "name": "nvidia",
+        "designated_models": [
+          "nvidia/llama-3.1-8b-instruct",
+          "nvidia/nemotron-4-340b-instruct"
+        ],
+        "env_var_api_key": "NVIDIA_API_KEY",
+        "notes": "NVIDIA NIM endpoints for specialized inference."
       }
     ]
   },
@@ -54,7 +84,12 @@
           "supports_code_execution": true
         },
         "cli_tool": "pi",
-        "cli_flags": ["--print", "--no-session", "--tools", "read,bash,edit,write"],
+        "cli_flags": [
+          "--print",
+          "--no-session",
+          "--tools",
+          "read,bash,edit,write"
+        ],
         "env_var_api_key": null,
         "timeout_seconds": 300,
         "retry_policy": {
@@ -89,7 +124,12 @@
           "supports_code_execution": true
         },
         "cli_tool": "pi",
-        "cli_flags": ["--print", "--no-session", "--tools", "read,bash,edit,write"],
+        "cli_flags": [
+          "--print",
+          "--no-session",
+          "--tools",
+          "read,bash,edit,write"
+        ],
         "env_var_api_key": null,
         "timeout_seconds": 300,
         "retry_policy": {
@@ -124,7 +164,12 @@
           "supports_code_execution": false
         },
         "cli_tool": "pi",
-        "cli_flags": ["--print", "--no-session", "--tools", "read,bash"],
+        "cli_flags": [
+          "--print",
+          "--no-session",
+          "--tools",
+          "read,bash"
+        ],
         "env_var_api_key": "GEMINI_API_KEY",
         "timeout_seconds": 300,
         "retry_policy": {
@@ -159,7 +204,12 @@
           "supports_code_execution": true
         },
         "cli_tool": "pi",
-        "cli_flags": ["--print", "--no-session", "--tools", "read,bash,grep,find"],
+        "cli_flags": [
+          "--print",
+          "--no-session",
+          "--tools",
+          "read,bash,grep,find"
+        ],
         "env_var_api_key": null,
         "timeout_seconds": 360,
         "retry_policy": {
@@ -211,10 +261,15 @@
     }
   ],
   "invocation_template": {
-    "_comment": "Reference template for manually constructing pi invocations. Substitute <AGENT>, <PROVIDER>, <MODEL>, and <PROMPT> as needed.",
-    "headless": "pi --provider <PROVIDER> --model <MODEL> --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
-    "with_thinking": "pi --provider <PROVIDER> --model <MODEL> --thinking medium --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
-    "scoped_tools": "pi --provider <PROVIDER> --model <MODEL> --tools read,bash --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --print \"<PROMPT>\""
+    "opencode_logic": "pi --provider opencode --model nemotron-3-super-free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "google_context": "pi --provider google --model gemini-2.5-pro --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "anthropic_code": "pi --provider anthropic --model claude-3-5-sonnet-latest --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "local_audit": "pi --provider opencode --model qwen2.5-coder:32b --system-prompt \"$(cat .syndicate/core/identities/THE_GAVEL.md)\" --print \"<PROMPT>\""
   },
-  "fallback_chain": ["pi", "claude", "gemini", "local"]
+  "fallback_chain": [
+    "pi",
+    "claude",
+    "gemini",
+    "local"
+  ]
 }
