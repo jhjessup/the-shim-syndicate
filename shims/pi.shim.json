@@ -32,13 +32,13 @@
     "supported_providers": [
       {
         "name": "opencode",
-        "designated_models": [
-          "nemotron-3-super-free",
-          "deepseek-v3",
-          "qwen-2.5-72b"
-        ],
+        "designated_models": {
+          "high": "nemotron-3-super-free",
+          "medium": "qwen-2.5-72b",
+          "low": "deepseek-v3"
+        },
         "env_var_api_key": null,
-        "notes": "Primary open-weight provider via pi."
+        "notes": "Tier-based open weights. High (Nemotron) for logic, Medium (Qwen) for code, Low (DeepSeek) for speed."
       },
       {
         "name": "openrouter",
@@ -101,7 +101,7 @@
       "secondary_backend": "claude",
       "backend_config": {
         "provider": "opencode",
-        "model": "nemotron-3-super-free",
+        "model": "qwen-2.5-72b",
         "model_constraints": {
           "min_context_tokens": 4096,
           "max_output_tokens": 8192,
@@ -246,9 +246,11 @@
     }
   ],
   "invocation_template": {
-    "opencode_logic": "pi --provider opencode --model nemotron-3-super-free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
     "openrouter_context": "pi --provider openrouter --model google/gemini-3.1-flash-lite-preview --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
-    "local_audit": "pi --provider opencode --model qwen2.5-coder:32b --system-prompt \"$(cat .syndicate/core/identities/THE_GAVEL.md)\" --print \"<PROMPT>\""
+    "local_audit": "pi --provider opencode --model qwen2.5-coder:32b --system-prompt \"$(cat .syndicate/core/identities/THE_GAVEL.md)\" --print \"<PROMPT>\"",
+    "opencode_high": "pi --provider opencode --model nemotron-3-super-free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --print \"<PROMPT>\"",
+    "opencode_medium": "pi --provider opencode --model qwen-2.5-72b --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --print \"<PROMPT>\"",
+    "opencode_low": "pi --provider opencode --model deepseek-v3 --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --print \"<PROMPT>\""
   },
   "fallback_chain": [
     "pi",
