@@ -38,34 +38,17 @@
           "qwen-2.5-72b"
         ],
         "env_var_api_key": null,
-        "notes": "Primary open-weight provider. Nemotron for complex logic, DeepSeek for speed/efficiency."
+        "notes": "Primary open-weight provider via pi."
       },
       {
-        "name": "google",
+        "name": "openrouter",
         "designated_models": [
-          "gemini-2.5-pro",
-          "gemini-2.5-flash"
+          "anthropic/claude-3.5-sonnet",
+          "google/gemini-2.0-pro-exp-02-05:free",
+          "meta-llama/llama-3.1-405b"
         ],
-        "env_var_api_key": "GEMINI_API_KEY",
-        "notes": "Large context provider. Use Pro for 100k+ token research, Flash for rapid feedback."
-      },
-      {
-        "name": "anthropic",
-        "designated_models": [
-          "claude-3-5-sonnet-latest",
-          "claude-3-5-haiku-latest"
-        ],
-        "env_var_api_key": "ANTHROPIC_API_KEY",
-        "notes": "State-of-the-art coding and reasoning. Sonnet for implementation, Haiku for refactoring."
-      },
-      {
-        "name": "nvidia",
-        "designated_models": [
-          "nvidia/llama-3.1-8b-instruct",
-          "nvidia/nemotron-4-340b-instruct"
-        ],
-        "env_var_api_key": "NVIDIA_API_KEY",
-        "notes": "NVIDIA NIM endpoints for specialized inference."
+        "env_var_api_key": "OPENROUTER_API_KEY",
+        "notes": "Unified interface for proprietary and large open-weight models."
       }
     ]
   },
@@ -155,8 +138,8 @@
       "primary_backend": "pi",
       "secondary_backend": "gemini",
       "backend_config": {
-        "provider": "google",
-        "model": "gemini-2.5-pro",
+        "provider": "openrouter",
+        "model": "google/gemini-2.0-pro-exp-02-05:free",
         "model_constraints": {
           "min_context_tokens": 32768,
           "max_output_tokens": 8192,
@@ -170,7 +153,7 @@
           "--tools",
           "read,bash"
         ],
-        "env_var_api_key": "GEMINI_API_KEY",
+        "env_var_api_key": "OPENROUTER_API_KEY",
         "timeout_seconds": 300,
         "retry_policy": {
           "max_attempts": 3,
@@ -251,7 +234,7 @@
     },
     {
       "rule_id": "large-context-to-ledger",
-      "description": "Route any context-retrieval task exceeding 50k tokens to The Ledger (Gemini via pi) for its extended context window.",
+      "description": "Route any context-retrieval task exceeding 50k tokens to The Ledger (OpenRouter via pi) for its extended context window.",
       "condition": {
         "task_type": "context-retrieval",
         "min_context_size_tokens": 50000
@@ -262,14 +245,12 @@
   ],
   "invocation_template": {
     "opencode_logic": "pi --provider opencode --model nemotron-3-super-free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
-    "google_context": "pi --provider google --model gemini-2.5-pro --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
-    "anthropic_code": "pi --provider anthropic --model claude-3-5-sonnet-latest --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "openrouter_premium": "pi --provider openrouter --model anthropic/claude-3.5-sonnet --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "openrouter_context": "pi --provider openrouter --model google/gemini-2.0-pro-exp-02-05:free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
     "local_audit": "pi --provider opencode --model qwen2.5-coder:32b --system-prompt \"$(cat .syndicate/core/identities/THE_GAVEL.md)\" --print \"<PROMPT>\""
   },
   "fallback_chain": [
     "pi",
-    "claude",
-    "gemini",
     "local"
   ]
 }
