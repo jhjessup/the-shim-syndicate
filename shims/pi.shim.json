@@ -43,9 +43,7 @@
       {
         "name": "openrouter",
         "designated_models": [
-          "anthropic/claude-3.5-sonnet",
-          "google/gemini-2.0-pro-exp-02-05:free",
-          "meta-llama/llama-3.1-405b"
+          "google/gemini-2.0-pro-exp-02-05:free"
         ],
         "env_var_api_key": "OPENROUTER_API_KEY",
         "notes": "Unified interface for proprietary and large open-weight models."
@@ -245,7 +243,6 @@
   ],
   "invocation_template": {
     "opencode_logic": "pi --provider opencode --model nemotron-3-super-free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
-    "openrouter_premium": "pi --provider openrouter --model anthropic/claude-3.5-sonnet --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
     "openrouter_context": "pi --provider openrouter --model google/gemini-2.0-pro-exp-02-05:free --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
     "local_audit": "pi --provider opencode --model qwen2.5-coder:32b --system-prompt \"$(cat .syndicate/core/identities/THE_GAVEL.md)\" --print \"<PROMPT>\""
   },
