@@ -225,3 +225,9 @@ SUB_AGENT_MODEL_IMPLEMENTATION: {{e.g., claude-sonnet-4-6}}       # Model for co
 ---
 
 *This Oracle file is project-local and lives in `.syndicate/ORACLE.md`. It is never committed to the Syndicate Core. All overrides here are scoped to this project exclusively.*
+
+### 6.3 Agent Safety & Concurrency Rules (v1.0)
+- RULE_1: **Resource Reservation Required** — Every agent (Lead, Ledger, Gavel, Operative) must check `.syndicate/vault/RESERVATIONS.json` before starting a task that modifies files or workspace state (venv, DB, caches).
+- RULE_2: **No Overlap on Mutation** — An agent must NOT attempt to modify a file or shared resource that is currently "LOCKED" by another task.
+- RULE_3: **State Sanitization Restriction** — Destructive cleanup (`rm -rf`, `git clean`) is strictly prohibited while any task is `ACTIVE` in the reservation registry.
+- RULE_4: **Task Expiry** — Reservations expire after 4 hours of inactivity or if the associated PID is no longer found in the process table. Gavel must audit and clear stale locks.

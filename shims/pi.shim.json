@@ -1,0 +1,220 @@
+{
+  "$schema": "./routing.schema.json",
+  "syndicate_version": "1.0.0",
+  "routing_mode": "fallback",
+  "_comment": "pi-primary shim. Use this configuration when pi is the CLI executor for sub-agent and operative dispatch. pi is a multi-provider router CLI that supports opencode, nvidia, anthropic, and google backends. It excels at headless, non-interactive, print-mode task execution — ideal for @operative and bounded @lead workloads. Identity injection is handled via --system-prompt and --append-system-prompt flags.",
+  "cli_tool": "pi",
+  "cli_profile": {
+    "executable": "pi",
+    "non_interactive_flag": "--print",
+    "system_prompt_flag": "--system-prompt",
+    "append_system_prompt_flag": "--append-system-prompt",
+    "provider_flag": "--provider",
+    "model_flag": "--model",
+    "tools_flag": "--tools",
+    "no_session_flag": "--no-session",
+    "thinking_flag": "--thinking",
+    "available_tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "default_tools": ["read", "bash", "edit", "write"],
+    "supported_providers": [
+      {
+        "name": "opencode",
+        "env_var_api_key": null,
+        "notes": "Routes through the opencode provider — supports a wide model catalog including nemotron, deepseek, and others."
+      },
+      {
+        "name": "nvidia",
+        "env_var_api_key": "NVIDIA_API_KEY",
+        "notes": "NVIDIA NIM API. Use for nemotron and other NVIDIA-hosted models."
+      },
+      {
+        "name": "anthropic",
+        "env_var_api_key": "ANTHROPIC_API_KEY",
+        "notes": "Anthropic Claude models via pi. Alternative to the native claude CLI."
+      },
+      {
+        "name": "google",
+        "env_var_api_key": "GEMINI_API_KEY",
+        "notes": "Google Gemini models via pi. Alternative to the native gemini CLI."
+      }
+    ]
+  },
+  "agents": {
+    "lead": {
+      "identity_file": "identities/THE_LEAD.md",
+      "primary_backend": "pi",
+      "secondary_backend": "claude",
+      "backend_config": {
+        "provider": "opencode",
+        "model": "nemotron-3-super-free",
+        "model_constraints": {
+          "min_context_tokens": 8192,
+          "max_output_tokens": 16384,
+          "supports_tool_use": true,
+          "supports_code_execution": true
+        },
+        "cli_tool": "pi",
+        "cli_flags": ["--print", "--no-session", "--tools", "read,bash,edit,write"],
+        "env_var_api_key": null,
+        "timeout_seconds": 300,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 2
+        }
+      },
+      "identity_injection": {
+        "method": "system-prompt",
+        "oracle_injection": "append-system-prompt"
+      },
+      "task_types": [
+        "architecture",
+        "implementation",
+        "decision-logging",
+        "housekeeping"
+      ],
+      "context_window_preference": "standard"
+    },
+    "operative": {
+      "identity_file": "identities/THE_OPERATIVE.md",
+      "primary_backend": "pi",
+      "secondary_backend": "claude",
+      "backend_config": {
+        "provider": "opencode",
+        "model": "nemotron-3-super-free",
+        "model_constraints": {
+          "min_context_tokens": 4096,
+          "max_output_tokens": 8192,
+          "supports_tool_use": true,
+          "supports_code_execution": true
+        },
+        "cli_tool": "pi",
+        "cli_flags": ["--print", "--no-session", "--tools", "read,bash,edit,write"],
+        "env_var_api_key": null,
+        "timeout_seconds": 300,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 2
+        }
+      },
+      "identity_injection": {
+        "method": "system-prompt",
+        "oracle_injection": "append-system-prompt"
+      },
+      "task_types": [
+        "implementation",
+        "refactoring",
+        "housekeeping",
+        "file-mutation"
+      ],
+      "context_window_preference": "standard"
+    },
+    "ledger": {
+      "identity_file": "identities/THE_LEDGER.md",
+      "primary_backend": "pi",
+      "secondary_backend": "gemini",
+      "backend_config": {
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "model_constraints": {
+          "min_context_tokens": 32768,
+          "max_output_tokens": 8192,
+          "supports_tool_use": true,
+          "supports_code_execution": false
+        },
+        "cli_tool": "pi",
+        "cli_flags": ["--print", "--no-session", "--tools", "read,bash"],
+        "env_var_api_key": "GEMINI_API_KEY",
+        "timeout_seconds": 300,
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_strategy": "exponential",
+          "backoff_base_seconds": 3
+        }
+      },
+      "identity_injection": {
+        "method": "system-prompt",
+        "oracle_injection": "append-system-prompt"
+      },
+      "task_types": [
+        "research",
+        "documentation",
+        "context-retrieval",
+        "dependency-analysis"
+      ],
+      "context_window_preference": "maximum"
+    },
+    "gavel": {
+      "identity_file": "identities/THE_GAVEL.md",
+      "primary_backend": "pi",
+      "secondary_backend": "local",
+      "backend_config": {
+        "provider": "opencode",
+        "model": "qwen2.5-coder:32b",
+        "model_constraints": {
+          "min_context_tokens": 4096,
+          "max_output_tokens": 4096,
+          "supports_tool_use": true,
+          "supports_code_execution": true
+        },
+        "cli_tool": "pi",
+        "cli_flags": ["--print", "--no-session", "--tools", "read,bash,grep,find"],
+        "env_var_api_key": null,
+        "timeout_seconds": 360,
+        "retry_policy": {
+          "max_attempts": 2,
+          "backoff_strategy": "linear",
+          "backoff_base_seconds": 5
+        }
+      },
+      "identity_injection": {
+        "method": "system-prompt",
+        "oracle_injection": "append-system-prompt"
+      },
+      "task_types": [
+        "security-audit",
+        "code-quality",
+        "test-generation"
+      ],
+      "context_window_preference": "standard"
+    }
+  },
+  "task_routing_rules": [
+    {
+      "rule_id": "operative-dispatch-to-pi",
+      "description": "All bounded operative tasks (implementation, housekeeping, file-mutation) are dispatched via pi in headless print mode.",
+      "condition": {
+        "task_type": "housekeeping"
+      },
+      "route_to": "operative",
+      "priority": 85
+    },
+    {
+      "rule_id": "security-always-gavel",
+      "description": "All security audit tasks always go to The Gavel regardless of context size.",
+      "condition": {
+        "task_type": "security-audit"
+      },
+      "route_to": "gavel",
+      "priority": 95
+    },
+    {
+      "rule_id": "large-context-to-ledger",
+      "description": "Route any context-retrieval task exceeding 50k tokens to The Ledger (Gemini via pi) for its extended context window.",
+      "condition": {
+        "task_type": "context-retrieval",
+        "min_context_size_tokens": 50000
+      },
+      "route_to": "ledger",
+      "priority": 90
+    }
+  ],
+  "invocation_template": {
+    "_comment": "Reference template for manually constructing pi invocations. Substitute <AGENT>, <PROVIDER>, <MODEL>, and <PROMPT> as needed.",
+    "headless": "pi --provider <PROVIDER> --model <MODEL> --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "with_thinking": "pi --provider <PROVIDER> --model <MODEL> --thinking medium --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --append-system-prompt \"$(cat .syndicate/ORACLE.md)\" --print \"<PROMPT>\"",
+    "scoped_tools": "pi --provider <PROVIDER> --model <MODEL> --tools read,bash --system-prompt \"$(cat .syndicate/core/identities/<AGENT>.md)\" --print \"<PROMPT>\""
+  },
+  "fallback_chain": ["pi", "claude", "gemini", "local"]
+}
