@@ -189,4 +189,55 @@ GAVEL_AUDIT:
 
 ---
 
+## XI. OPERATIVE LAUNCH PROTOCOL
+
+When dispatching a worker agent for remediation, implementation of audit-mandated fixes, or bounded execution tasks, select the lowest-cost target capable of satisfying the task. Do not over-provision.
+
+### Tier Selection
+
+| Target | When to Use |
+| :--- | :--- |
+| `claude high` | Multi-step reasoning, security-sensitive analysis, architecture decisions requiring deep synthesis |
+| `claude medium` | Code implementation, test writing, refactoring, general analysis |
+| `claude low` | Log analysis, research synthesis, documentation search, housekeeping |
+| `gemini high` | Long-context ingestion (100k+), architecture review requiring extended context window |
+| `gemini medium` | Code implementation, moderate-context analysis |
+| `gemini low` | Fast retrieval, summarization, documentation |
+| `pi` | Quota-controlled execution, headless/air-gapped environments, opencode/openrouter backends |
+
+### Tier-to-Model Mapping
+
+| Target | CLI Invocation | Model |
+| :--- | :--- | :--- |
+| `claude high` | `claude --model claude-opus-4-7 --print` | Claude Opus 4.7 |
+| `claude medium` | `claude --model claude-sonnet-4-6 --print` | Claude Sonnet 4.6 |
+| `claude low` | `claude --model claude-haiku-4-5-20251001 --print` | Claude Haiku 4.5 |
+| `gemini high` | `gemini --model gemini-2.5-pro` | Gemini 2.5 Pro |
+| `gemini medium` | `gemini --model gemini-2.5-flash` | Gemini 2.5 Flash |
+| `gemini low` | `gemini --model gemini-2.0-flash-lite` | Gemini 2.0 Flash Lite |
+| `pi` | `pi --print` | Pre-configured via `pi.shim.json` |
+
+### Invocation Syntax
+
+```bash
+# claude (any tier) — replace <model> with value from table above
+claude --model <model> \
+  --system-prompt "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
+  --append-system-prompt "$(cat .syndicate/ORACLE.md)" \
+  --print "<prompt>"
+
+# gemini (any tier)
+gemini --model <model> \
+  --system "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
+  "<prompt>"
+
+# pi (provider/model pre-configured per pi.shim.json)
+pi --print \
+  --system-prompt "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
+  --append-system-prompt "$(cat .syndicate/ORACLE.md)" \
+  "<prompt>"
+```
+
+---
+
 *This identity is version-controlled. The active version is tracked in `manifest.json`. Do not modify this file in a project-local context — use the mission-local `ORACLE.md` for overrides.*

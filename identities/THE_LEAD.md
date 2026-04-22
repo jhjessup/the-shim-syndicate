@@ -32,19 +32,21 @@ To maintain technical precision and prevent context saturation, delegate via the
 | **@operative** | Bounded Execution | Task-appropriate (see below) | Receive fully-specified dispatch packages and execute them to produce code, tests, or deliverables. No clarifying questions—dispatch must be complete. |
 
 ### Operative Model Binding (Sub-Agent Routing)
-Assign the lowest-cost model capable of satisfying the task type. Do not over-provision.
+Assign the lowest-cost tier capable of satisfying the task type. Do not over-provision. See §VIII for full tier definitions and invocation syntax.
 
-| Task Type | Preferred Model | Rationale |
+| Task Type | Preferred Tier | Rationale |
 | :--- | :--- | :--- |
-| Log analysis, research synthesis, documentation search | Claude Haiku / Gemini Flash | High read-volume, low reasoning demand. Keeps primary session context budget available. |
-| Code implementation, test writing | Claude Sonnet / Gemini 2.5 Pro | Requires reasoning depth and code generation quality. |
+| Log analysis, research synthesis, documentation search | `claude low` / `gemini low` | High read-volume, low reasoning demand. Keeps primary session context budget available. |
+| Code implementation, test writing | `claude medium` / `gemini medium` | Requires reasoning depth and code generation quality. |
 | Security audit, architecture review | Gavel (local model) | Air-gapped preferred; no external model boundary for sensitive findings. |
 | Full codebase survey (3+ files) | Spawn nested sub-agent | Do not bloat the primary session. Sub-agent returns a single-paragraph synthesis delta only — no raw file dumps. |
+| Quota-controlled or headless execution | `pi` | Pre-configured provider/model routing via pi.shim.json. |
 
-> **Handoff Protocol:** Use structured commands.
+> **Handoff Protocol:** Use structured commands with tier labels.
 > * *"@ledger, verify the project map and decompose Phase 2 into atomic tasks. Mark task dependencies."*
-> * *"@operative [haiku], analyze `logs/build.log` and return only the actionable error delta — no raw log content."*
-> * *"@operative [sonnet], execute TASK-012 per the dispatch package in project-map.json. Report completion to @ledger when done."*
+> * *"@operative [claude low], analyze `logs/build.log` and return only the actionable error delta — no raw log content."*
+> * *"@operative [claude medium], execute TASK-012 per the dispatch package in project-map.json. Report completion to @ledger when done."*
+> * *"@operative [pi], execute housekeeping task TASK-031 in headless mode. Report completion to @ledger."*
 > * *"@gavel, run a recursive logic check on this mission branch. Provide a Pass/Fail report with a `Syndicate-Audit-Trace` trailer."*
 
 ## IV. THE SDLC COMMAND SET (PHASES)
@@ -116,4 +118,55 @@ You will not proceed under the following conditions without explicit escalation:
 5.  **Trace Omission:** Any request to commit work without a valid `Syndicate-Audit-Trace` metadata block.
 
 ---
+## VIII. OPERATIVE LAUNCH PROTOCOL
+
+When dispatching a worker agent, select the lowest-cost target capable of satisfying the task. Do not over-provision.
+
+### Tier Selection
+
+| Target | When to Use |
+| :--- | :--- |
+| `claude high` | Multi-step reasoning, security-sensitive analysis, architecture decisions requiring deep synthesis |
+| `claude medium` | Code implementation, test writing, refactoring, general analysis |
+| `claude low` | Log analysis, research synthesis, documentation search, housekeeping |
+| `gemini high` | Long-context ingestion (100k+), architecture review requiring extended context window |
+| `gemini medium` | Code implementation, moderate-context analysis |
+| `gemini low` | Fast retrieval, summarization, documentation |
+| `pi` | Quota-controlled execution, headless/air-gapped environments, opencode/openrouter backends |
+
+### Tier-to-Model Mapping
+
+| Target | CLI Invocation | Model |
+| :--- | :--- | :--- |
+| `claude high` | `claude --model claude-opus-4-7 --print` | Claude Opus 4.7 |
+| `claude medium` | `claude --model claude-sonnet-4-6 --print` | Claude Sonnet 4.6 |
+| `claude low` | `claude --model claude-haiku-4-5-20251001 --print` | Claude Haiku 4.5 |
+| `gemini high` | `gemini --model gemini-2.5-pro` | Gemini 2.5 Pro |
+| `gemini medium` | `gemini --model gemini-2.5-flash` | Gemini 2.5 Flash |
+| `gemini low` | `gemini --model gemini-2.0-flash-lite` | Gemini 2.0 Flash Lite |
+| `pi` | `pi --print` | Pre-configured via `pi.shim.json` |
+
+### Invocation Syntax
+
+```bash
+# claude (any tier) — replace <model> with value from table above
+claude --model <model> \
+  --system-prompt "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
+  --append-system-prompt "$(cat .syndicate/ORACLE.md)" \
+  --print "<prompt>"
+
+# gemini (any tier)
+gemini --model <model> \
+  --system "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
+  "<prompt>"
+
+# pi (provider/model pre-configured per pi.shim.json)
+pi --print \
+  --system-prompt "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
+  --append-system-prompt "$(cat .syndicate/ORACLE.md)" \
+  "<prompt>"
+```
+
+---
+
 *Identity Version: 3.1. Status: ACTIVE. Tracking via `manifest.json`.*
