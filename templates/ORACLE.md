@@ -135,7 +135,13 @@ Every exception requires an operator signature and a remediation plan.
 |-------------|----------------|--------|-------------------|--------|
 | SEC-EX-001 | {{item}} | {{reason}} | {{name — date}} | {{date or "None"}} |
 
-### 4.4 Severity Threshold Overrides
+### 4.4 Testing Doctrine
+```
+TEST_DOCTRINE: .syndicate/TEST_DOCTRINE.md
+```
+All test generation, coverage auditing, and test quality findings are governed by the Testing Doctrine. The Gavel reads `TEST_DOCTRINE.md` as a mandatory supplement to its standard audit checklist. Coverage thresholds in §4.1 above define the numeric floors; the Doctrine defines what those numbers must measure and which behaviors are categorically required regardless of coverage percentage.
+
+### 4.5 Severity Threshold Overrides
 <!--
 Adjust default severity thresholds if the project's risk profile requires it.
 Example: A medical device project might escalate all MED findings to HIGH.
@@ -190,9 +196,23 @@ MAX_SUBJECT_LENGTH: {{e.g., 72 characters}}
 Conditions that must be met before any deployment.
 -->
 - [ ] All Gavel audit findings resolved (Critical/High are hard blockers)
-- [ ] Test coverage thresholds met (see 4.1)
+- [ ] Test coverage thresholds met (see §4.1)
+- [ ] Mandatory Test Matrix satisfied (see TEST_DOCTRINE.md §3.2)
 - [ ] AUDIT_LOG.md updated for the session
 - [ ] {{ADDITIONAL_GATE_1}}
+
+### 6.4 Session Resource Budget
+<!--
+Thresholds governing context hygiene and sub-agent delegation for this project.
+These are operator-defined per project — defaults below are recommendations.
+-->
+```
+CONTEXT_HYGIENE_THRESHOLD: {{e.g., 60%}}   # Trigger snapshot + /compact at this context load
+OPERATIVE_DELEGATION_THRESHOLD: {{e.g., 3 files}}  # Spawn sub-agent when research spans more files than this
+OPERATIVE_SYNTHESIS_FORMAT: delta_only     # Sub-agents return actionable delta only — no raw content
+SUB_AGENT_MODEL_RESEARCH: {{e.g., claude-haiku-3 | gemini-flash}}  # Model for log/doc analysis operatives
+SUB_AGENT_MODEL_IMPLEMENTATION: {{e.g., claude-sonnet-4-6}}       # Model for code-writing operatives
+```
 
 ---
 
@@ -205,3 +225,9 @@ Conditions that must be met before any deployment.
 ---
 
 *This Oracle file is project-local and lives in `.syndicate/ORACLE.md`. It is never committed to the Syndicate Core. All overrides here are scoped to this project exclusively.*
+
+### 6.3 Agent Safety & Concurrency Rules (v1.0)
+- RULE_1: **Resource Reservation Required** — Every agent (Lead, Ledger, Gavel, Operative) must check `.syndicate/vault/RESERVATIONS.json` before starting a task that modifies files or workspace state (venv, DB, caches).
+- RULE_2: **No Overlap on Mutation** — An agent must NOT attempt to modify a file or shared resource that is currently "LOCKED" by another task.
+- RULE_3: **State Sanitization Restriction** — Destructive cleanup (`rm -rf`, `git clean`) is strictly prohibited while any task is `ACTIVE` in the reservation registry.
+- RULE_4: **Task Expiry** — Reservations expire after 4 hours of inactivity or if the associated PID is no longer found in the process table. Gavel must audit and clear stale locks.

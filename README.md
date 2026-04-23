@@ -45,6 +45,9 @@ the-shim-syndicate/
 │   ├── ORACLE.md                # Project override template (filled in per project)
 │   └── AUDIT_LOG.md             # Permanent audit trail template
 │
+├── sops/
+│   └── CONTEXT_HYGIENE.md       # Operator SOP: session lifecycle, snapshot, cache management
+│
 └── scripts/
     └── syndicate-init.sh        # Project hydration script
 ```
@@ -145,7 +148,7 @@ Begin your session.
 Via the Claude CLI:
 ```bash
 claude --system-prompt "$(cat .syndicate/core/identities/THE_LEAD.md)" \
-       --append "$(cat .syndicate/ORACLE.md)"
+       --append-system-prompt "$(cat .syndicate/ORACLE.md)"
 ```
 
 ### Starting The Ledger (Gemini)
@@ -248,5 +251,5 @@ jq '.deployment_registry.entries' ~/syndicate/manifest.json
 
 ---
 
-*The Shim Syndicate — Version 1.0.0*  
+*The Shim Syndicate — Version 3.2.0*  
 *Professional-grade AI development, deployable anywhere.*
