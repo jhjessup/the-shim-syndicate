@@ -140,23 +140,37 @@ When dispatching a worker agent, select the lowest-cost target capable of satisf
 
 ### Invocation Syntax
 
+All operative launches **must** go through `scripts/launch-operative.sh`. Direct `claude --model` calls bypass the resource governor and are prohibited.
+
 ```bash
-# claude (any tier) — replace <model> with value from table above
-claude --model <model> \
+# All tiers — claude, gemini, and pi
+scripts/launch-operative.sh <tier> \
   --system-prompt "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
   --append-system-prompt "$(cat .syndicate/ORACLE.md)" \
-  --print "<prompt>"
+  "<prompt>"
 
-# gemini (any tier)
-gemini --model <model> \
+# Examples:
+scripts/launch-operative.sh claude-medium \
+  --system-prompt "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
+  --append-system-prompt "$(cat .syndicate/ORACLE.md)" \
+  "Execute TASK-012 per the dispatch package."
+
+scripts/launch-operative.sh gemini-high \
   --system "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
-  "<prompt>"
+  "Analyze the full codebase dependency graph."
 
-# pi (provider/model pre-configured per pi.shim.json)
-pi --print \
+scripts/launch-operative.sh pi \
   --system-prompt "$(cat .syndicate/core/identities/THE_OPERATIVE.md)" \
   --append-system-prompt "$(cat .syndicate/ORACLE.md)" \
-  "<prompt>"
+  "Execute housekeeping task TASK-031 in headless mode."
+```
+
+**Governor behavior on hold (exit code 2):**
+When `launch-operative.sh` exits with code 2, the operative was blocked by the capacity governor. Pause the task queue — do not retry, do not dispatch a substitute. Report the hold and time remaining to @lead.
+
+**Status check:**
+```bash
+python3 scripts/update_usage.py --status
 ```
 
 ### Dispatch Command Syntax
