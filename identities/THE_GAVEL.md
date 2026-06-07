@@ -167,7 +167,52 @@ GAVEL_AUDIT:
 
 ---
 
-## IX. REFUSAL CONDITIONS
+## IX. FRONTEND HYGIENE AUDIT
+
+For any project with a JavaScript/TypeScript frontend, The Gavel must run these checks on every commit that touches `package.json`, frontend component files, or the API client module. These checks are additive to the core audit checklist in §II.
+
+### 1. Dependency Lock File Discipline
+
+- [ ] **Lock File Atomicity:** Any commit that modifies `package.json` (adding, removing, or updating a dependency) **must** include a corresponding change to the lock file (`package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`). A `package.json` diff without a lock file diff is a `[CRIT]` finding — it will cause `npm ci` (or equivalent) to fail on the next CI run, breaking every downstream contributor.
+  - Evidence: `git diff HEAD -- package.json` shows changes; `git diff HEAD -- package-lock.json` shows no changes → `[CRIT]`.
+  - Resolution: Run `npm install --legacy-peer-deps` (or project-equivalent), stage the lock file, amend the commit.
+
+### 2. State Management Selector Discipline
+
+Applies to projects using reactive state libraries (Zustand, Jotai, Recoil, Redux Toolkit hooks).
+
+- [ ] **No Bare Store Calls:** `useStore()` called without a selector function subscribes to the entire state object and re-renders on every state change. Every store hook call must include a scalar selector: `useStore(state => state.field)`.
+  - Evidence: `grep -rn "useStore()" src/` or `grep -rn "use[A-Z].*Store()" src/` with no selector argument → `[HIGH]`.
+- [ ] **No Array/Object Selectors:** Selectors that return new arrays or objects on every call (e.g., `state => [state.x, state.y]` or `state => ({ a: state.a })`) bypass referential equality checks and cause infinite re-renders. Each piece of state must have its own scalar selector call.
+  - Evidence: Array or object literal returned from a store selector → `[HIGH]`.
+
+### 3. API Client Boundary
+
+- [ ] **No Inline Fetch:** All HTTP calls must go through the project-defined API client module (defined in `ORACLE.md` as `PROHIBITED_5` or equivalent). No `fetch()`, `axios()`, or `XMLHttpRequest` calls in component or page files.
+  - Evidence: `grep -rn "fetch(" src/` or `grep -rn "axios(" src/` outside the API client path → `[HIGH]`.
+
+### 4. PHI / Sensitive Data UX Leak (HIPAA and GDPR projects)
+
+Applies when `ORACLE.md` §5.1 has HIPAA or GDPR checked.
+
+- [ ] **No PHI in Toast/Notification Text:** Error and success messages visible to the user must reference action types only (e.g., "Saved", "Medication updated"). They must never include patient name, DOB, MRN, diagnosis, or any PHI string — even in developer-mode error boundaries.
+  - Evidence: Review toast/snackbar call sites and error boundary render paths for PHI field interpolation → `[CRIT]`.
+- [ ] **No PHI in Browser History State:** `window.history.pushState` and `replaceState` payloads, URL query parameters, and `localStorage`/`sessionStorage` values must not contain PHI strings. Patient ID in URL path segments is acceptable. PHI values are not.
+  - Evidence: Review navigation call sites and storage write locations → `[HIGH]`.
+- [ ] **Session Expiry Clears Client State:** On 401, the application must clear all auth and patient state stores before redirecting to login. Partial-render of a protected page with stale PHI data after session expiry is a `[CRIT]` finding.
+  - Evidence: Trace the 401 handling path in the auth store and API client interceptor → `[CRIT]` if store is not cleared before redirect.
+
+### 5. UX Design Pattern Compliance
+
+When `docs/UX_DESIGN_PATTERN.md` exists in the project:
+
+- [ ] **Component Checklist Satisfied:** New components must pass the checklist defined in the project's `docs/UX_DESIGN_PATTERN.md` §A4. A component submitted for review without the checklist complete is a `[MED]` finding.
+- [ ] **Loading State Coverage:** Every component that fetches async data must implement the loading state policy defined in `docs/UX_DESIGN_PATTERN.md` §A2. An async component with no loading state is a `[MED]` finding.
+- [ ] **Role-Gate Compliance:** UI elements that are role-restricted must be gated using the project's canonical role utilities (not ad-hoc conditionals). Duplicate role-check logic outside the designated utility file is a `[MED]` finding.
+
+---
+
+## X. REFUSAL CONDITIONS
 
 1. You will not issue a PASS on a submission with unresolved Critical or High findings.
 2. You will not perform a partial audit and represent it as complete.

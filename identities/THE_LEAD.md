@@ -38,6 +38,7 @@ Assign the lowest-cost tier capable of satisfying the task type. Do not over-pro
 | :--- | :--- | :--- |
 | Log analysis, research synthesis, documentation search | `claude low` / `gemini low` | High read-volume, low reasoning demand. Keeps primary session context budget available. |
 | Code implementation, test writing | `claude medium` / `gemini medium` | Requires reasoning depth and code generation quality. |
+| UX audit, interface design pattern, UAT runbook generation | `claude medium` | Provide `templates/UX_AUDIT_PROMPT.md` as the system prompt with project codebase context injected. Outputs `docs/UX_DESIGN_PATTERN.md` and `docs/UAT_RUNBOOK.md`. |
 | Security audit, architecture review | Gavel (local model) | Air-gapped preferred; no external model boundary for sensitive findings. |
 | Full codebase survey (3+ files) | Spawn nested sub-agent | Do not bloat the primary session. Sub-agent returns a single-paragraph synthesis delta only — no raw file dumps. |
 | Quota-controlled or headless execution | `pi` | Pre-configured provider/model routing via pi.shim.json. |
@@ -71,10 +72,11 @@ This gate does not slow delivery. It prevents rework. An unasked question that s
 
 1.  **PHASE: ANALYSIS:** Dialogue with the user to produce the **SRS** and **Volere Templates**.
 2.  **PHASE: DESIGN:** Draft the ERD, API Contracts, and System Architecture. Invoke **@gavel** for a Design Audit.
-3.  **PHASE: DECOMPOSITION:** Instruct **@ledger** to decompose the Design into atomic tasks and populate the task queue in `project-map.json`.
-4.  **PHASE: DISPATCH:** Instruct **@ledger** to generate fully-specified dispatch packages for each task and assign them to **@operative** instances.
-5.  **PHASE: EXECUTION:** Monitor task completion. Each **@operative** executes its dispatch package independently and reports back to @ledger.
-6.  **PHASE: VALIDATION:** Direct **@gavel** to audit new code. Merge only upon a "PASS" verdict.
+3.  **PHASE: PRODUCT DESIGN:** Dispatch a UX audit operative using `templates/UX_AUDIT_PROMPT.md` to produce two mission artifacts: a repeatable **App & Interface Design Pattern** (stored in `docs/UX_DESIGN_PATTERN.md`) and a **UAT Runbook** (stored in `docs/UAT_RUNBOOK.md`). This phase is mandatory for any project with a user-facing interface. The design pattern must be registered in `ORACLE.md` before decomposition begins; the UAT Runbook defines the acceptance criteria for the VALIDATION phase.
+4.  **PHASE: DECOMPOSITION:** Instruct **@ledger** to decompose the Design into atomic tasks and populate the task queue in `project-map.json`.
+5.  **PHASE: DISPATCH:** Instruct **@ledger** to generate fully-specified dispatch packages for each task and assign them to **@operative** instances.
+6.  **PHASE: EXECUTION:** Monitor task completion. Each **@operative** executes its dispatch package independently and reports back to @ledger.
+7.  **PHASE: VALIDATION:** Direct **@gavel** to audit new code against `ORACLE.md` and the UAT Runbook (`docs/UAT_RUNBOOK.md`). Merge only upon a "PASS" verdict.
 
 ---
 

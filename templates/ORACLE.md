@@ -141,7 +141,51 @@ TEST_DOCTRINE: .syndicate/TEST_DOCTRINE.md
 ```
 All test generation, coverage auditing, and test quality findings are governed by the Testing Doctrine. The Gavel reads `TEST_DOCTRINE.md` as a mandatory supplement to its standard audit checklist. Coverage thresholds in §4.1 above define the numeric floors; the Doctrine defines what those numbers must measure and which behaviors are categorically required regardless of coverage percentage.
 
-### 4.5 Severity Threshold Overrides
+### 4.5 Infrastructure Configuration Audit
+<!--
+Fill this section for projects with a reverse proxy (nginx, Caddy, Traefik, etc.)
+between the frontend and backend. Leave blank if not applicable.
+-->
+
+| Check | Severity | Trigger |
+|-------|----------|---------|
+| Every registered API prefix has a matching proxy `location` block | `[CRIT]` | Any commit that adds, removes, or modifies a route prefix |
+| Proxy config syntax passes `nginx -t` (or equivalent) | `[HIGH]` | Any commit modifying proxy config files |
+| No drift between dev proxy config (Vite/webpack/etc.) and production nginx location blocks | `[MED]` | Any commit modifying either config |
+| DNS resolver directive present for containerized deployments (`resolver 127.0.0.11` for Docker) | `[HIGH]` | Any commit modifying nginx config |
+| Variable-based upstream used (`set $backend ...`) so nginx re-resolves DNS on each request | `[HIGH]` | Any commit modifying nginx config |
+
+**Proxy Route Mapping (canonical — fill before first deployment):**
+
+| Backend Prefix | Registered In | Proxy Location Block |
+|----------------|---------------|----------------------|
+| `{{/api/}}` | `{{router registration}}` | `{{location /api/}}` |
+
+### 4.6 Frontend API Contract Audit
+<!--
+Fill this section for projects with a typed frontend API client.
+-->
+
+| Check | Severity | Trigger |
+|-------|----------|---------|
+| A TypeScript interface exists for every new/changed backend response schema | `[HIGH]` | New or changed response schema |
+| Interface property names match the wire format exactly (camelCase if backend serializes camelCase) | `[HIGH]` | Any schema or interface change |
+| No snake_case property names in TypeScript API interfaces | `[HIGH]` | Any interface change in the API client module |
+| All HTTP calls go through the designated API client module (no inline `fetch()`) | `[HIGH]` | Any commit touching component or page files |
+
+### 4.7 UX Design Pattern Compliance
+<!--
+Fill this section once docs/UX_DESIGN_PATTERN.md has been generated.
+Leave as placeholder until PHASE: PRODUCT DESIGN is complete.
+-->
+```
+UX_DESIGN_PATTERN: docs/UX_DESIGN_PATTERN.md
+UAT_RUNBOOK:       docs/UAT_RUNBOOK.md
+```
+
+The Gavel reads `docs/UX_DESIGN_PATTERN.md` as a mandatory supplement during any audit that touches component files. Coverage thresholds in §4.1 define the numeric floors; the design pattern defines what the UI must look like and how components must behave.
+
+### 4.8 Severity Threshold Overrides
 <!--
 Adjust default severity thresholds if the project's risk profile requires it.
 Example: A medical device project might escalate all MED findings to HIGH.
@@ -191,7 +235,29 @@ FORMAT: {{e.g., Conventional Commits (feat/fix/chore/docs/refactor)}}
 MAX_SUBJECT_LENGTH: {{e.g., 72 characters}}
 ```
 
-### 6.3 Deployment Gate Requirements
+### 6.3 Agent Safety & Concurrency Rules
+- RULE_1: **Resource Reservation Required** — Every agent must check `.syndicate/vault/RESERVATIONS.json` before starting a task that modifies files or workspace state.
+- RULE_2: **No Overlap on Mutation** — An agent must NOT modify a file or shared resource currently locked by another task.
+- RULE_3: **State Sanitization Restriction** — Destructive cleanup (`rm -rf`, `git clean`) is prohibited while any task is `ACTIVE` in the reservation registry.
+- RULE_4: **Task Expiry** — Reservations expire after 4 hours of inactivity or if the associated PID is no longer running.
+- RULE_5: **Lock File Atomicity** — See §6.4. Any agent that runs `npm install` (or equivalent) must include the updated lock file in the same commit.
+
+### 6.4 Frontend Dependency Workflow Rule
+<!--
+Fill this section for any project with a JavaScript/TypeScript frontend.
+This rule prevents the recurring CI failure pattern where npm install
+mutates the lock file but it is never committed.
+-->
+
+**Mandatory rule — applies to all agents and the operator:**
+
+> After any `npm install`, `npm install -D`, or `npm update` in the frontend directory, the resulting lock file (`package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`) **must** be staged and included in the same commit as the `package.json` change. CI will fail on the next push if this is skipped.
+
+**Gavel check (blocking):** Any commit that modifies `package.json` without a corresponding lock file change is a `[CRIT]` CI blocker finding.
+
+**Agent directive:** After running any package install command, immediately run `git status <frontend-dir>/package-lock.json` (or equivalent) and stage if modified before committing.
+
+### 6.5 Deployment Gate Requirements
 <!--
 Conditions that must be met before any deployment.
 -->
@@ -201,7 +267,7 @@ Conditions that must be met before any deployment.
 - [ ] AUDIT_LOG.md updated for the session
 - [ ] {{ADDITIONAL_GATE_1}}
 
-### 6.4 Session Resource Budget
+### 6.6 Session Resource Budget
 <!--
 Thresholds governing context hygiene and sub-agent delegation for this project.
 These are operator-defined per project — defaults below are recommendations.
@@ -225,9 +291,3 @@ SUB_AGENT_MODEL_IMPLEMENTATION: {{e.g., claude-sonnet-4-6}}       # Model for co
 ---
 
 *This Oracle file is project-local and lives in `.syndicate/ORACLE.md`. It is never committed to the Syndicate Core. All overrides here are scoped to this project exclusively.*
-
-### 6.3 Agent Safety & Concurrency Rules (v1.0)
-- RULE_1: **Resource Reservation Required** — Every agent (Lead, Ledger, Gavel, Operative) must check `.syndicate/vault/RESERVATIONS.json` before starting a task that modifies files or workspace state (venv, DB, caches).
-- RULE_2: **No Overlap on Mutation** — An agent must NOT attempt to modify a file or shared resource that is currently "LOCKED" by another task.
-- RULE_3: **State Sanitization Restriction** — Destructive cleanup (`rm -rf`, `git clean`) is strictly prohibited while any task is `ACTIVE` in the reservation registry.
-- RULE_4: **Task Expiry** — Reservations expire after 4 hours of inactivity or if the associated PID is no longer found in the process table. Gavel must audit and clear stale locks.
