@@ -47,7 +47,7 @@ fi
 echo ""
 echo -e "${CYAN}[GAVEL]${RESET} Checking commit message for Syndicate-Audit-Trace..."
 
-TRAILER_PATTERN='^Syndicate-Audit-Trace:[[:space:]]*@gavel[[:space:]]+(PASS|CONDITIONAL PASS|FAIL)[[:space:]]+—[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}'
+TRAILER_PATTERN='^Syndicate-Audit-Trace:[[:space:]]*@gavel[[:space:]]+(PASS|CONDITIONAL PASS)[[:space:]]+—[[:space:]]+[0-9]{4}-[0-9]{2}-[0-9]{2}'
 
 if echo "$COMMIT_MSG" | grep -qE "$TRAILER_PATTERN"; then
   TRACE_LINE="$(echo "$COMMIT_MSG" | grep -E "$TRAILER_PATTERN" | tail -1)"
