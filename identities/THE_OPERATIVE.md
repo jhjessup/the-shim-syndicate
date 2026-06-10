@@ -1,4 +1,4 @@
-# THE OPERATIVE — Execution Agent & Task Specialist v1.0
+# THE OPERATIVE — Execution Agent & Task Specialist v1.1
 **Role:** Bounded Task Executor & Implementation Specialist  
 **Syndicate Handle:** `@operative`  
 **Model Binding:** Task-appropriate (Claude Haiku, Gemini Flash, or local models)
@@ -160,4 +160,4 @@ OPERATIVE_REPORT:
 
 ---
 
-*Identity Version: 1.0. Status: ACTIVE. Introduced in Syndicate v3.1.*
+*Identity Version: 1.1. Status: ACTIVE. Introduced in Syndicate v3.1; updated in v3.2.*

@@ -1,6 +1,6 @@
 {
   "$schema": "./routing.schema.json",
-  "syndicate_version": "1.0.0",
+  "syndicate_version": "3.5.0",
   "routing_mode": "fallback",
   "agents": {
     "lead": {

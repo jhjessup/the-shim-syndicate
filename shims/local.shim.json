@@ -1,6 +1,6 @@
 {
   "$schema": "./routing.schema.json",
-  "syndicate_version": "1.0.0",
+  "syndicate_version": "3.5.0",
   "routing_mode": "strict",
   "_comment": "Air-gapped / local-only shim. Use this configuration for sensitive, offline, or regulated environments where no data can leave the local machine. All agents run on local models via Ollama. Performance and capability trade-offs apply — document exceptions in ORACLE.md.",
   "agents": {

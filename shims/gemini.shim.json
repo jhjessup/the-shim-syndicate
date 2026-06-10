@@ -1,6 +1,6 @@
 {
   "$schema": "./routing.schema.json",
-  "syndicate_version": "1.0.0",
+  "syndicate_version": "3.5.0",
   "routing_mode": "strict",
   "_comment": "Gemini-primary shim. Use this configuration when Gemini is the primary orchestration model (e.g., in a Google Cloud native project). The Lead role is served by Gemini here; Claude is reserved for audit.",
   "agents": {

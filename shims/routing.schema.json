@@ -9,7 +9,7 @@
   "properties": {
     "syndicate_version": {
       "type": "string",
-      "description": "Must match the version field in manifest.json",
+      "description": "Version of the Syndicate core this shim was authored against (manifest.json active_version at authoring time).",
       "pattern": "^\\d+\\.\\d+\\.\\d+$"
     },
     "routing_mode": {

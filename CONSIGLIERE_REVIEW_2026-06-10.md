@@ -254,3 +254,24 @@ Three systemic causes explain ~90% of the findings:
 **Known tradeoff accepted:** the broadened regex will also flag prose `{{placeholder}}` mentions inside hydrated ORACLE/TEST_DOCTRINE files. This is the safe direction (false block > false pass); template prose should avoid literal double-brace tokens (Phase 1, item 6 territory).
 
 **Remaining open:** C-2 full fix (hash-bound trailers), all Phase 1 and Phase 2 items.
+
+---
+
+## ADDENDUM — PHASE 1 EXECUTION RECORD
+
+**Executed:** 2026-06-10, on `mission/consigliere-remediation` (Phase 0 landed as `74a3ae1` — the first commit in this repo's history gated by its own hooks). Two parallel operatives with disjoint file scopes, plus one inline hook fix by @consigliere.
+
+| Phase 1 Item | Finding | Action Taken | Verification |
+|---|---|---|---|
+| 5. Manifest true-up → v3.5.0 | H-1 | New 3.5.0 entry registering the unversioned 4a49554 changes + this remediation; `canonical_branch` → `main`; superseded entries collapsed to changelog-only (464 → 231 lines); unimplementable `sha256_manifest` field removed; pi shim, TASK_HYGIENE_SOP, UX_AUDIT_PROMPT, RESERVATIONS, and a scripts registry all registered | `jq` VALID; active_version 3.5.0; 7 version entries |
+| 5. README sync | H-1 | Footer 3.2.0 → 3.5.0; Consigliere added to team table; structure tree corrected to actual repo contents (was missing hooks/, 2 SOPs, 5 templates, 3 scripts, 2 identities, pi shim) | zero residual "3.2.0" |
+| 5. Identity version bumps | H-1 | Lead 3.1→3.2, Ledger 3.0→3.1, Gavel 2.0→2.1, Operative header 1.0→1.1 — matching manifest | headers + footers consistent |
+| 5. Shim version policy | H-1 | `syndicate_version` redefined in schema as "authored against core version"; all four shims stamped 3.5.0 | `jq` OK ×5 |
+| 6. Launch protocol consolidation | H-5 | New canonical `sops/OPERATIVE_LAUNCH_PROTOCOL.md` v1.0; triplicated blocks replaced with compact policy references (Lead −58 lines, Ledger −63, Gavel −39); **Gavel's direct-invocation contradiction resolved** — all launches now route through `launch-operative.sh` | tier-to-model table exists in exactly one file |
+| 6. Markdown hygiene (opportunistic, same files) | L-1..L-4 | Gavel duplicate §X renumbered (X/XI/XII); Lead doubled `---` and broken §VI fence fixed; Ledger stray-asterisk and bold-spacing typos fixed | grep confirms unique section numbers |
+| 7. Orphan removal | M-3, M-4 | `git rm shims/gavel_audit.py` (crashed on first run, dead quota logic) and `identities/THE_LEDGER.json` (referenced by nothing) | staged deletions |
+| NEW: F-1 (found by dogfooding) | — | During the Phase 0 commit, the live hook run revealed CHECK-3 patterns beginning with `-` (the private-key header) were parsed by grep as **options** and silently skipped — private-key detection had never functioned. Fixed with `grep -qiE -e "$pattern"`; hook reinstalled | a sample RSA private-key header (defanged here — the working gate now flags the literal, which it proved by blocking the first draft of this very row) now matches |
+
+**Token-burn payoff (H-5):** ~160 lines of duplicated protocol removed from identity system prompts ≈ 4–4.5k tokens saved per 3-agent session, recurring.
+
+**Remaining open:** C-2 full fix (hash-bound audit trailers) and all Phase 2 items — schema v2 + shim validation, RESERVATIONS mechanism, task-hygiene toolchain decision, session manager rebuild/downscope, init-script robustness (`--read-only-bash`, sed escaping, registry side-effect, `--yes`).

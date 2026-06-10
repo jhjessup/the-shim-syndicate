@@ -14,6 +14,7 @@ The Shim Syndicate is a structured, version-controlled system for deploying a mu
 | **The Ledger** | `@ledger` | Gemini (2.5 Pro+) | Context Librarian. Task Decomposer. Project Manager. |
 | **The Gavel** | `@gavel` | Local (Qwen2.5-Coder / OpenCode) | Independent Auditor. Security. Code quality. Compliance. |
 | **The Operative** | `@operative` | Task-appropriate (Haiku, Flash, or local) | Bounded Executor. Receives dispatch packages. Produces deliverables. |
+| **The Consigliere** | `@consigliere` | Claude (Sonnet 4.6+) | Strategic Advisor. Pattern analyst. Anti-pattern detection. |
 
 **Architecture:** Lead and Ledger are orchestrators (decision and planning). Gavel and Operatives are enforcement/execution layers (audit and implementation).
 
@@ -26,30 +27,47 @@ Each agent operates from a system instruction defined in `identities/`. These id
 ```
 the-shim-syndicate/
 │
-├── README.md                    # This file
-├── manifest.json                # Version registry and deployment log
+├── README.md                          # This file
+├── manifest.json                      # Version registry and deployment log
+├── STYLE_GUIDE.md                     # Writing and formatting standards for Syndicate documents
 │
 ├── identities/
-│   ├── THE_LEAD.md              # Lead identity — architecture and decision authority
-│   ├── THE_LEDGER.md            # Ledger identity — context and task dispatch authority
-│   ├── THE_GAVEL.md             # Gavel identity — audit and compliance authority
-│   └── THE_OPERATIVE.md         # Operative identity — bounded task execution
+│   ├── THE_LEAD.md                    # Lead identity — architecture and decision authority
+│   ├── THE_LEDGER.md                  # Ledger identity — context and task dispatch authority
+│   ├── THE_GAVEL.md                   # Gavel identity — audit and compliance authority
+│   ├── THE_OPERATIVE.md               # Operative identity — bounded task execution
+│   └── THE_CONSIGLIERE.md             # Consigliere identity — strategic analysis and anti-pattern detection
 │
 ├── shims/
-│   ├── routing.schema.json      # JSON Schema for all shim configurations
-│   ├── claude.shim.json         # Claude-primary routing (recommended default)
-│   ├── gemini.shim.json         # Gemini-primary routing (Google Cloud native projects)
-│   └── local.shim.json          # Air-gapped local-only routing (regulated environments)
+│   ├── routing.schema.json            # JSON Schema for all shim configurations
+│   ├── claude.shim.json               # Claude-primary routing (recommended default)
+│   ├── gemini.shim.json               # Gemini-primary routing (Google Cloud native projects)
+│   ├── local.shim.json                # Air-gapped local-only routing (regulated environments)
+│   └── pi.shim.json                   # Pi-primary routing configuration
+│
+├── hooks/
+│   ├── pre-commit                     # Branch guard, Oracle integrity, and secrets gate
+│   └── commit-msg                     # Syndicate-Audit-Trace trailer gate
 │
 ├── templates/
-│   ├── ORACLE.md                # Project override template (filled in per project)
-│   └── AUDIT_LOG.md             # Permanent audit trail template
+│   ├── ORACLE.md                      # Project override template (filled in per project)
+│   ├── AUDIT_LOG.md                   # Permanent audit trail template
+│   ├── MISSION_BRIEF.md               # Operator-completed mission context template
+│   ├── project-map.json               # Ledger's branch-specific context map template
+│   ├── TEST_DOCTRINE.md               # Two-tier testing specification template
+│   ├── RESERVATIONS.json              # Task reservation registry template (agent concurrency)
+│   └── UX_AUDIT_PROMPT.md             # Frontend hygiene / UX audit prompt template
 │
 ├── sops/
-│   └── CONTEXT_HYGIENE.md       # Operator SOP: session lifecycle, snapshot, cache management
+│   ├── CONTEXT_HYGIENE.md             # Operator SOP: session lifecycle, snapshot, cache management
+│   ├── TASK_HYGIENE_SOP.md            # Operator SOP: task decomposition and queue hygiene
+│   └── OPERATIVE_LAUNCH_PROTOCOL.md   # Canonical operative launch protocol (tiers, models, dispatch)
 │
 └── scripts/
-    └── syndicate-init.sh        # Project hydration script
+    ├── syndicate-init.sh              # Project hydration script
+    ├── syndicate-session.sh           # tmux session manager with branch detection
+    ├── launch-operative.sh            # Operative launcher (tier routing + capacity governor)
+    └── update_usage.py                # Claude capacity usage tracker
 ```
 
 ---
@@ -251,5 +269,5 @@ jq '.deployment_registry.entries' ~/syndicate/manifest.json
 
 ---
 
-*The Shim Syndicate — Version 3.2.0*  
+*The Shim Syndicate — Version 3.5.0*  
 *Professional-grade AI development, deployable anywhere.*

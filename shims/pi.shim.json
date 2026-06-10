@@ -1,6 +1,6 @@
 {
   "$schema": "./routing.schema.json",
-  "syndicate_version": "1.0.0",
+  "syndicate_version": "3.5.0",
   "routing_mode": "fallback",
   "_comment": "pi-primary shim. Use this configuration when pi is the CLI executor for sub-agent and operative dispatch. pi is a multi-provider router CLI that supports opencode, nvidia, anthropic, and google backends. It excels at headless, non-interactive, print-mode task execution \u2014 ideal for @operative and bounded @lead workloads. Identity injection is handled via --system-prompt and --append-system-prompt flags.",
   "cli_tool": "pi",
