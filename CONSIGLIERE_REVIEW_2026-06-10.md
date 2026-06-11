@@ -294,3 +294,20 @@ Three systemic causes explain ~90% of the findings:
 **C-2 status:** CLOSED (transitional). The trailer is now verifiable when hash-bound; full enforcement (rejecting hashless trailers) is a future flag-day once hydrated projects migrate.
 
 **Remaining open (Phase 3 candidates):** pi.shim model-ID refresh procedure (L-9), secrets-scan breadth / gitleaks delegation (M-5 residual), CHECK-4 multi-word pattern support (M-5), `.claude/settings.local.json` `git *` wildcard (L-6), `--dangerously-skip-permissions` default (L-7), hashless-trailer flag day.
+
+---
+
+## ADDENDUM — PHASE 3 EXECUTION RECORD (v3.7.0 — Gate Hardening II)
+
+**Executed:** 2026-06-11, on `mission/phase-3-hardening` (own vault and Oracle). Two parallel operatives (hooks vs. configuration), disjoint scopes; identities untouched. This closes every finding from the original review.
+
+| Phase 3 Item | Finding | Action Taken | Verification |
+|---|---|---|---|
+| Secrets-scan breadth + gitleaks | M-5 residual | pre-commit v2.3.0 CHECK-3 delegates to `gitleaks protect --staged` when installed (graceful regex fallback on absence or runtime error); `.env` guard runs in every mode; fallback patterns broadened: OpenAI `sk-`, Slack `xox*`, generic Bearer, Google OAuth refresh, JWT | planted-secret detection per pattern; **zero self-matches** across all 14 patterns vs. both hook files (the hooks can scan themselves) |
+| Multi-word prohibited patterns | M-5 residual | CHECK-4 awk extraction now captures the full pattern after `- PATTERN: ` (was `print $3` — truncated at first space); per-check verdict gated on a local counter, no longer suppressed by earlier check failures | old-vs-new awk comparison reproduced the truncation bug and confirmed the fix |
+| Strict trace-hash mode | C-2 migration | commit-msg v2.2.0: `SYNDICATE_REQUIRE_TRACE_HASH=1` makes hashless trailers hard failures; default remains warn-and-accept (hydrated projects unaffected). The documented path to the eventual flag day | 6-case test matrix: legacy warn/pass, strict fail, hashed pass (strict-agnostic), forged hash fail |
+| pi.shim model rot | L-9 | `models_verified_on` dates + verification notes per provider, `model_refresh_procedure` in cli_profile; slug rot is now visible with a documented refresh path | 4/4 shims still validate |
+| Permission-bypass default | L-7 | `--dangerously-skip-permissions` removed from claude.shim Lead defaults; security-posture comment documents the project-local opt-in | flag string survives only inside the explanatory comment |
+| Permission wildcard | L-6 | core-repo `.claude/settings.local.json`: `git *` wildcard and stale one-offs replaced with explicit verb allowlist; destructive git ops now prompt. Machine-local (file is globally gitignored — not part of the commit) | `jq` clean |
+
+**Review closure status:** all 20 findings from the original review (3 CRIT, 5 HIGH, 6 MED, 6 LOW/hygiene) are now CLOSED or superseded by shipped mechanisms. The only deliberately deferred item is the hashless-trailer **flag day** itself, which now has its migration mechanism (`SYNDICATE_REQUIRE_TRACE_HASH`) and awaits operator timing.

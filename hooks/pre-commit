@@ -2,7 +2,7 @@
 # =============================================================================
 # pre-commit — The Gavel's Branch Integrity Hook
 # =============================================================================
-# Version: 2.2.0
+# Version: 2.3.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
@@ -15,7 +15,11 @@
 #                               ORACLE.md exists and contains no unfilled
 #                               {{placeholder}} tokens.
 #   [CHECK-3] SECRETS SCAN    — Scans staged files for exposed credentials,
-#                               API keys, and tokens using pattern matching.
+#                               API keys, and tokens. Delegates to gitleaks
+#                               (`gitleaks protect --staged`) when installed;
+#                               otherwise falls back to the built-in regex
+#                               patterns (narrower coverage). Staged .env files
+#                               are always blocked regardless of scanner.
 #   [CHECK-4] ORACLE ANCHORS  — Verifies staged files do not introduce patterns
 #                               explicitly prohibited in the mission ORACLE.md
 #                               (reads PROHIBITED PATTERNS section if present).
@@ -189,44 +193,87 @@ if [[ -z "$STAGED_FILES" ]]; then
   pass "No staged files to scan."
 else
   SECRETS_FOUND=false
+  STAGED_COUNT="$(echo "$STAGED_FILES" | wc -l | tr -d ' ')"
 
-  # Patterns that indicate hardcoded secrets
-  declare -a SECRET_PATTERNS=(
-    'ANTHROPIC_API_KEY\s*=\s*["\x27]?sk-ant-'
-    'GOOGLE_API_KEY\s*=\s*["\x27]?AIza'
-    'AWS_SECRET_ACCESS_KEY\s*=\s*["\x27][A-Za-z0-9/+]{40}'
-    'AWS_ACCESS_KEY_ID\s*=\s*["\x27]?AKIA[A-Z0-9]{16}'
-    'GITHUB_TOKEN\s*=\s*["\x27]?gh[pousr]_[A-Za-z0-9]{36}'
-    'PASSWORD\s*=\s*["\x27][^\$\{"\x27][^"\x27]{6,}'
-    'SECRET\s*=\s*["\x27][^\$\{"\x27][^"\x27]{8,}'
-    'PRIVATE_KEY\s*=\s*["\x27]'
-    '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----'
-  )
-
+  # .env-file guard — ALWAYS runs, regardless of which scanner handles the
+  # content scan. Committing a .env file is a hard failure in every mode.
   while IFS= read -r file; do
-    # Skip binary files and known safe directories
-    if git show ":$file" 2>/dev/null | file --mime - 2>/dev/null | grep -q 'binary'; then
-      continue
-    fi
-    # Skip the .env file itself (it's intended to hold keys — it should be gitignored)
+    [[ -z "$file" ]] && continue
     if [[ "$file" == ".env" || "$file" == *".env."* ]]; then
       fail "Staged file is a .env file: $file — this must be gitignored, not committed."
       SECRETS_FOUND=true
-      continue
     fi
-
-    for pattern in "${SECRET_PATTERNS[@]}"; do
-      if git show ":$file" 2>/dev/null | grep -qiE -e "$pattern"; then
-        fail "Possible secret detected in: $file"
-        fail "  Pattern matched: $pattern"
-        fail "  Move this value to .env and reference it via environment variable."
-        SECRETS_FOUND=true
-      fi
-    done
   done <<< "$STAGED_FILES"
 
-  if [[ "$SECRETS_FOUND" == false ]]; then
-    pass "No secret patterns detected in $(echo "$STAGED_FILES" | wc -l | tr -d ' ') staged file(s)."
+  # Delegation: prefer gitleaks when installed (broader, maintained ruleset).
+  # Any problem RUNNING gitleaks → warn + regex fallback (graceful degradation).
+  # gitleaks running and FINDING leaks → hard FAIL.
+  USE_REGEX_FALLBACK=true
+  if command -v gitleaks &>/dev/null; then
+    GITLEAKS_OUTPUT="$(gitleaks protect --staged --no-banner --redact 2>&1)"
+    GITLEAKS_EXIT=$?
+    if [[ "$GITLEAKS_EXIT" -eq 0 ]]; then
+      pass "gitleaks scan clean (${STAGED_COUNT} staged files)."
+      USE_REGEX_FALLBACK=false
+    elif [[ "$GITLEAKS_EXIT" -eq 126 || "$GITLEAKS_EXIT" -eq 127 ]] || \
+         echo "$GITLEAKS_OUTPUT" | grep -qiE 'unknown (command|flag)|unknown shorthand flag|flag provided but not defined'; then
+      warn "gitleaks is installed but could not run (exit ${GITLEAKS_EXIT}) — falling back to built-in regex scan."
+    else
+      fail "gitleaks detected potential secrets in the staged diff (output redacted):"
+      while IFS= read -r gl_line; do
+        echo -e "        ${gl_line}" >&2
+      done <<< "$GITLEAKS_OUTPUT"
+      fail "  Move these values to .env and reference them via environment variables."
+      SECRETS_FOUND=true
+      USE_REGEX_FALLBACK=false
+    fi
+  else
+    info "gitleaks not installed — using built-in regex fallback (narrower coverage)."
+  fi
+
+  if [[ "$USE_REGEX_FALLBACK" == true ]]; then
+    # Patterns that indicate hardcoded secrets
+    declare -a SECRET_PATTERNS=(
+      'ANTHROPIC_API_KEY\s*=\s*["\x27]?sk-ant-'
+      'GOOGLE_API_KEY\s*=\s*["\x27]?AIza'
+      'AWS_SECRET_ACCESS_KEY\s*=\s*["\x27][A-Za-z0-9/+]{40}'
+      'AWS_ACCESS_KEY_ID\s*=\s*["\x27]?AKIA[A-Z0-9]{16}'
+      'GITHUB_TOKEN\s*=\s*["\x27]?gh[pousr]_[A-Za-z0-9]{36}'
+      'PASSWORD\s*=\s*["\x27][^\$\{"\x27][^"\x27]{6,}'
+      'SECRET\s*=\s*["\x27][^\$\{"\x27][^"\x27]{8,}'
+      'PRIVATE_KEY\s*=\s*["\x27]'
+      '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----'
+      'sk-[A-Za-z0-9]{20}[A-Za-z0-9_-]{10,}'
+      'xox[baprs]-[A-Za-z0-9-]{10,}'
+      '[Aa]uthorization["\x27]?\s*[:=]\s*["\x27]?Bearer\s+[A-Za-z0-9._~+/-]{20,}'
+      '1//[A-Za-z0-9_-]{28,}'
+      'eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+    )
+
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      # Skip binary files and known safe directories
+      if git show ":$file" 2>/dev/null | file --mime - 2>/dev/null | grep -q 'binary'; then
+        continue
+      fi
+      # .env files were already failed by the always-on guard above
+      if [[ "$file" == ".env" || "$file" == *".env."* ]]; then
+        continue
+      fi
+
+      for pattern in "${SECRET_PATTERNS[@]}"; do
+        if git show ":$file" 2>/dev/null | grep -qiE -e "$pattern"; then
+          fail "Possible secret detected in: $file"
+          fail "  Pattern matched: $pattern"
+          fail "  Move this value to .env and reference it via environment variable."
+          SECRETS_FOUND=true
+        fi
+      done
+    done <<< "$STAGED_FILES"
+
+    if [[ "$SECRETS_FOUND" == false ]]; then
+      pass "No secret patterns detected in ${STAGED_COUNT} staged file(s)."
+    fi
   fi
 fi
 
@@ -241,13 +288,15 @@ echo -e "${BOLD}── CHECK-4: Oracle Prohibited Pattern Guard ──${RESET}"
 
 if [[ -f "$MISSION_ORACLE" ]]; then
   # Extract prohibited patterns from ORACLE.md (lines under "### Prohibited Patterns")
-  # Expects lines formatted as: `- PATTERN: <pattern>`
-  PROHIBITED=$(awk '/### Prohibited Patterns/{found=1; next} /^##/{found=0} found && /^- PATTERN:/{print $3}' \
+  # Expects lines formatted as: `- PATTERN: <pattern>` — the full pattern after
+  # the prefix is captured verbatim (internal spaces preserved, trailing trimmed).
+  PROHIBITED=$(awk '/### Prohibited Patterns/{found=1; next} /^##/{found=0} found && /^- PATTERN:/{sub(/^- PATTERN:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print}' \
     "$MISSION_ORACLE" 2>/dev/null || true)
 
   if [[ -z "$PROHIBITED" ]]; then
     pass "No machine-readable prohibited patterns defined in ORACLE.md."
   else
+    CHECK4_FAILS=0
     while IFS= read -r pattern; do
       [[ -z "$pattern" ]] && continue
       while IFS= read -r file; do
@@ -255,11 +304,12 @@ if [[ -f "$MISSION_ORACLE" ]]; then
         if git show ":$file" 2>/dev/null | grep -qE "$pattern"; then
           fail "ORACLE-prohibited pattern found in staged file: $file"
           fail "  Prohibited pattern: $pattern"
+          (( CHECK4_FAILS++ )) || true
         fi
       done <<< "$STAGED_FILES"
     done <<< "$PROHIBITED"
 
-    if [[ "$FAIL_COUNT" -eq 0 ]]; then
+    if [[ "$CHECK4_FAILS" -eq 0 ]]; then
       pass "All staged files are clean of Oracle-prohibited patterns."
     fi
   fi

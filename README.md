@@ -273,5 +273,5 @@ jq '.deployment_registry.entries' ~/syndicate/manifest.json
 
 ---
 
-*The Shim Syndicate — Version 3.6.0*  
+*The Shim Syndicate — Version 3.7.0*  
 *Professional-grade AI development, deployable anywhere.*

@@ -2,6 +2,7 @@
   "$schema": "./routing.schema.json",
   "syndicate_version": "3.5.0",
   "routing_mode": "fallback",
+  "_comment": "Security posture: agents run with normal permission prompts by default. Operators who accept the risk of unattended operation may add --dangerously-skip-permissions to an agent's cli_flags in their project-local .syndicate/routing.json — never in this core shim.",
   "agents": {
     "lead": {
       "identity_file": "identities/THE_LEAD.md",
@@ -17,7 +18,7 @@
           "supports_code_execution": true
         },
         "cli_tool": "claude",
-        "cli_flags": ["--dangerously-skip-permissions"],
+        "cli_flags": [],
         "env_var_api_key": "ANTHROPIC_API_KEY",
         "timeout_seconds": 180,
         "retry_policy": {

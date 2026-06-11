@@ -1,0 +1,22 @@
+{
+  "mission": "phase-3-hardening",
+  "branch": "mission/phase-3-hardening",
+  "created": "2026-06-11",
+  "project": "the-shim-syndicate",
+  "purpose": "Close residual Phase 3 findings from CONSIGLIERE_REVIEW_2026-06-10.md",
+  "task_queue": [
+    { "task_id": "TASK-P3-1", "title": "CHECK-3 breadth: gitleaks delegation with regex fallback, broadened secret patterns (M-5)", "status": "READY", "owner": "operative-A" },
+    { "task_id": "TASK-P3-2", "title": "CHECK-4 multi-word prohibited patterns + per-check verdict fix (M-5)", "status": "READY", "owner": "operative-A" },
+    { "task_id": "TASK-P3-3", "title": "commit-msg: opt-in strict mode SYNDICATE_REQUIRE_TRACE_HASH=1 (C-2 migration path)", "status": "READY", "owner": "operative-A" },
+    { "task_id": "TASK-P3-4", "title": "pi.shim model verification annotations + refresh procedure (L-9)", "status": "READY", "owner": "operative-B" },
+    { "task_id": "TASK-P3-5", "title": "claude.shim: remove --dangerously-skip-permissions default (L-7)", "status": "READY", "owner": "operative-B" },
+    { "task_id": "TASK-P3-6", "title": "settings.local.json: replace git * wildcard with explicit verb allowlist (L-6)", "status": "READY", "owner": "operative-B" },
+    { "task_id": "TASK-P3-7", "title": "manifest v3.7.0 + README footer + review addendum + evidence-bound commit", "status": "BACKLOG", "owner": "consigliere" }
+  ],
+  "protected_paths": [
+    "identities/",
+    "scripts/",
+    "templates/",
+    "sops/"
+  ]
+}
