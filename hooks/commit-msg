@@ -2,7 +2,7 @@
 # =============================================================================
 # commit-msg — The Gavel's Audit Trace Enforcement Hook
 # =============================================================================
-# Version: 2.0.0
+# Version: 2.1.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
@@ -10,12 +10,27 @@
 #   requirement on all mission/ branch commits. This trailer provides an
 #   immutable chain of custody linking every commit to a Gavel audit record.
 #
-# REQUIRED TRAILER FORMAT:
-#   Syndicate-Audit-Trace: @gavel <STATUS> — <ISO-8601-timestamp>
+# ACCEPTED TRAILER FORMATS:
+#   Legacy (2-field, self-attested — transitional):
+#     Syndicate-Audit-Trace: @gavel <STATUS> — <ISO-8601-timestamp>
+#   Evidence-bound (3-field, verifiable — generate with scripts/audit-trace.sh):
+#     Syndicate-Audit-Trace: @gavel <STATUS> — <ISO-8601-timestamp> — <12-hex-hash>
 #
 #   Examples:
 #     Syndicate-Audit-Trace: @gavel PASS — 2026-04-03T14:22:00Z
-#     Syndicate-Audit-Trace: @gavel CONDITIONAL PASS — 2026-04-03T14:22:00Z
+#     Syndicate-Audit-Trace: @gavel CONDITIONAL PASS — 2026-04-03T14:22:00Z — a1b2c3d4e5f6
+#
+# TRANSITIONAL HASH POLICY:
+#   - Trailer with NO hash  → accepted with a warning (existing hydrated
+#     projects must not break). Generate an evidence-bound trailer with:
+#       scripts/audit-trace.sh generate --status PASS --log <AUDIT_LOG.md>
+#   - Trailer WITH a hash   → the hash MUST match an `AUDIT_TRACE_HASH: <hash>`
+#     entry in the branch audit log (anti-forgery check). Logs are searched
+#     in order:
+#       .syndicate/vault/<branch-sanitized>/logs/AUDIT_LOG.md
+#       .syndicate/vault/<branch-sanitized>/AUDIT_LOG.md
+#       .syndicate/logs/AUDIT_LOG.md
+#     A hashed trailer with no matching entry FAILS the commit.
 #
 # INSTALLATION:
 #   cp hooks/commit-msg /path/to/project/.git/hooks/commit-msg
@@ -33,6 +48,7 @@ COMMIT_MSG="$(cat "$COMMIT_MSG_FILE")"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 RESET='\033[0m'
@@ -52,7 +68,62 @@ TRAILER_PATTERN='^Syndicate-Audit-Trace:[[:space:]]*@gavel[[:space:]]+(PASS|COND
 if echo "$COMMIT_MSG" | grep -qE "$TRAILER_PATTERN"; then
   TRACE_LINE="$(echo "$COMMIT_MSG" | grep -E "$TRAILER_PATTERN" | tail -1)"
   echo -e "${GREEN}[PASS]${RESET}  Syndicate-Audit-Trace found: $TRACE_LINE"
-  exit 0
+
+  # ---------------------------------------------------------------------------
+  # Transitional evidence-binding check (v2.1.0):
+  #   hash present  → must match an AUDIT_TRACE_HASH entry in the audit log
+  #   hash absent   → warn, accept (legacy trailers remain valid for now)
+  # ---------------------------------------------------------------------------
+  TRACE_HASH="$(echo "$TRACE_LINE" | grep -oE '—[[:space:]][0-9a-f]{12}[[:space:]]*$' | grep -oE '[0-9a-f]{12}' || true)"
+
+  if [[ -z "$TRACE_HASH" ]]; then
+    echo -e "${YELLOW}[WARN]${RESET}  Trailer is not evidence-bound (no audit hash)."
+    echo -e "        Generate one with: ${CYAN}scripts/audit-trace.sh generate --status PASS --log <AUDIT_LOG.md>${RESET}"
+    echo -e "        (transitional: accepted for now)"
+    exit 0
+  fi
+
+  SANITIZED_BRANCH="${CURRENT_BRANCH//\//-}"
+  AUDIT_LOG_CANDIDATES=(
+    ".syndicate/vault/${SANITIZED_BRANCH}/logs/AUDIT_LOG.md"
+    ".syndicate/vault/${SANITIZED_BRANCH}/AUDIT_LOG.md"
+    ".syndicate/logs/AUDIT_LOG.md"
+  )
+
+  AUDIT_LOG=""
+  for candidate in "${AUDIT_LOG_CANDIDATES[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      AUDIT_LOG="$candidate"
+      break
+    fi
+  done
+
+  if [[ -n "$AUDIT_LOG" ]] && grep -qE "^AUDIT_TRACE_HASH:[[:space:]]*${TRACE_HASH}[[:space:]]*$" "$AUDIT_LOG"; then
+    echo -e "${GREEN}[PASS]${RESET}  Audit hash ${TRACE_HASH} is evidence-bound (matched in ${AUDIT_LOG})."
+    exit 0
+  fi
+
+  echo ""
+  echo -e "${RED}${BOLD}[FAIL] COMMIT BLOCKED — Audit hash not evidence-bound${RESET}"
+  echo ""
+  echo -e "  The trailer carries audit hash ${BOLD}${TRACE_HASH}${RESET}, but no matching"
+  echo -e "  ${CYAN}AUDIT_TRACE_HASH: ${TRACE_HASH}${RESET} entry exists in the audit log."
+  echo -e "  This is the anti-forgery check: a hashed trailer must correspond to a"
+  echo -e "  written audit record appended by ${CYAN}scripts/audit-trace.sh generate${RESET}."
+  echo ""
+  echo -e "  Audit log paths searched:"
+  for candidate in "${AUDIT_LOG_CANDIDATES[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      echo -e "    - $candidate (exists — no matching entry)"
+    else
+      echo -e "    - $candidate (not found)"
+    fi
+  done
+  echo ""
+  echo -e "  Either regenerate the trailer with ${CYAN}scripts/audit-trace.sh generate${RESET},"
+  echo -e "  or drop the hash to fall back to the legacy (warned) trailer format."
+  echo ""
+  exit 1
 else
   echo ""
   echo -e "${RED}${BOLD}[FAIL] COMMIT BLOCKED — Missing Syndicate-Audit-Trace${RESET}"

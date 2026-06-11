@@ -1,0 +1,19 @@
+{
+  "mission": "phase-2-mechanisms",
+  "branch": "mission/phase-2-mechanisms",
+  "created": "2026-06-10",
+  "project": "the-shim-syndicate",
+  "purpose": "Phase 2 of CONSIGLIERE_REVIEW_2026-06-10.md: convert documented-but-unimplemented behaviors into working mechanisms",
+  "task_queue": [
+    { "task_id": "TASK-P2-8",  "title": "Schema v2 (pi/openrouter/operative support, backward-compatible) + scripts/validate-shims.sh + pre-commit CHECK-6 + pi in init --shim whitelist", "status": "READY", "owner": "operative-A" },
+    { "task_id": "TASK-P2-9",  "title": "RESERVATIONS mechanism: scripts/reserve.sh (claim/release/status/sweep), init stamping, ORACLE template §6.3 wiring", "status": "READY", "owner": "operative-A (init) + operative-B (reserve.sh, template)" },
+    { "task_id": "TASK-P2-10", "title": "Task-hygiene SOP true-up: drop phantom toolchain references, align to project-map.json task_queue; fix CONTEXT_HYGIENE §-reference", "status": "READY", "owner": "operative-C" },
+    { "task_id": "TASK-P2-11", "title": "syndicate-session.sh honest downscope (correct CLI flags, send-keys without auto-execute, fix scope bug); init robustness (--yes, sed escaping, registry side-effect, remove --read-only-bash)", "status": "READY", "owner": "operative-A (init) + operative-C (session)" },
+    { "task_id": "TASK-P2-12", "title": "Evidence-bound audit traces: scripts/audit-trace.sh (generate/verify), commit-msg transitional hash verification", "status": "READY", "owner": "operative-B" },
+    { "task_id": "TASK-P2-13", "title": "manifest v3.6.0 + README + review addendum + commit", "status": "BACKLOG", "owner": "consigliere" }
+  ],
+  "protected_paths": [
+    "identities/",
+    "scripts/launch-operative.sh"
+  ]
+}

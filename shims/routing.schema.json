@@ -3,10 +3,32 @@
   "$id": "https://shim-syndicate/schemas/routing.schema.json",
   "title": "Syndicate Shim Routing Configuration",
   "description": "Defines how tasks are routed to specific model backends for each Syndicate agent identity.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "object",
   "required": ["syndicate_version", "routing_mode", "agents"],
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema file for editor validation support."
+    },
+    "_comment": {
+      "type": "string",
+      "description": "Free-form human-readable note describing the shim's intent and usage."
+    },
+    "cli_tool": {
+      "type": "string",
+      "description": "Top-level CLI command used to invoke this shim's backends (e.g., 'pi')."
+    },
+    "cli_profile": {
+      "type": "object",
+      "description": "CLI-specific invocation profile (flags, tool lists, provider catalog). Intentionally permissive — structure varies per CLI tool.",
+      "additionalProperties": true
+    },
+    "invocation_template": {
+      "type": "object",
+      "description": "Named example invocation command strings keyed by scenario.",
+      "additionalProperties": { "type": "string" }
+    },
     "syndicate_version": {
       "type": "string",
       "description": "Version of the Syndicate core this shim was authored against (manifest.json active_version at authoring time).",
@@ -24,7 +46,9 @@
       "properties": {
         "lead": { "$ref": "#/definitions/agentConfig" },
         "ledger": { "$ref": "#/definitions/agentConfig" },
-        "gavel": { "$ref": "#/definitions/agentConfig" }
+        "gavel": { "$ref": "#/definitions/agentConfig" },
+        "operative": { "$ref": "#/definitions/agentConfig" },
+        "consigliere": { "$ref": "#/definitions/agentConfig" }
       },
       "additionalProperties": false
     },
@@ -38,7 +62,7 @@
       "description": "Ordered list of backends to attempt if primary fails. Only used when routing_mode is 'fallback'.",
       "items": {
         "type": "string",
-        "enum": ["claude", "gemini", "local"]
+        "enum": ["claude", "gemini", "local", "pi"]
       }
     }
   },
@@ -54,13 +78,21 @@
         },
         "primary_backend": {
           "type": "string",
-          "enum": ["claude", "gemini", "local"],
+          "enum": ["claude", "gemini", "local", "pi"],
           "description": "The primary model backend for this agent."
         },
         "secondary_backend": {
           "type": "string",
-          "enum": ["claude", "gemini", "local"],
+          "enum": ["claude", "gemini", "local", "pi"],
           "description": "Fallback backend if primary is unavailable. Optional."
+        },
+        "identity_injection": {
+          "type": "object",
+          "description": "How the agent's identity and Oracle context are injected into the CLI invocation.",
+          "properties": {
+            "method": { "type": "string" },
+            "oracle_injection": { "type": "string" }
+          }
         },
         "backend_config": {
           "$ref": "#/definitions/backendConfig"
@@ -80,7 +112,10 @@
               "dependency-analysis",
               "test-generation",
               "context-retrieval",
-              "decision-logging"
+              "decision-logging",
+              "housekeeping",
+              "refactoring",
+              "file-mutation"
             ]
           }
         },
@@ -97,7 +132,7 @@
       "properties": {
         "provider": {
           "type": "string",
-          "enum": ["anthropic", "google", "opencode", "ollama", "openai-compatible"]
+          "enum": ["anthropic", "google", "opencode", "ollama", "openai-compatible", "openrouter"]
         },
         "model": {
           "type": "string",
@@ -122,8 +157,8 @@
           "items": { "type": "string" }
         },
         "env_var_api_key": {
-          "type": "string",
-          "description": "Name of the environment variable holding the API key. Never the key itself."
+          "type": ["string", "null"],
+          "description": "Name of the environment variable holding the API key, or null when no key is required. Never the key itself."
         },
         "endpoint_override": {
           "type": "string",
@@ -166,7 +201,7 @@
         },
         "route_to": {
           "type": "string",
-          "enum": ["lead", "ledger", "gavel"]
+          "enum": ["lead", "ledger", "gavel", "operative", "consigliere"]
         },
         "priority": {
           "type": "integer",

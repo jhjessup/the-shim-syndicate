@@ -1,19 +1,19 @@
 # SOP — Task Queue Hygiene
 **Document Type:** Operator Standard Operating Procedure  
-**Syndicate Handle:** @ledger (owns execution)  
-**Version:** 1.0  
+**Syndicate Handle:** `@ledger` (owns execution)  
+**Version:** 1.1  
 **Introduced:** 2026-04-13  
-**Companion Script:** `.syndicate/scripts/task-hygiene.py`  
-**Companion Prompt:** `.syndicate/scripts/task-hygiene-prompt.md`  
-**ORACLE Reference:** §7.1
+**ORACLE Reference:** `ORACLE.md` — Agent Safety & Concurrency Rules section  
+**Status:** Manual procedure (companion automation not yet shipped — see `CONSIGLIERE_REVIEW_2026-06-10.md` M-2)
 
 ---
 
 > **What this SOP is:**
-> A daily procedure to keep the three Syndicate sources of truth — `task-graph.yaml`,
-> `project-map.json`, and `tasks/dispatch/` packages — synchronized. Task statuses
-> drift across sessions because agents update dispatch packages without advancing the
-> registry files. This SOP automates detection and correction of that drift.
+> A daily procedure to keep the two Syndicate sources of truth — `project-map.json`
+> (the `task_queue` array and its embedded dispatch packages) and `AUDIT_LOG.md` —
+> synchronized. Task statuses drift across sessions because agents update dispatch
+> package state without advancing the queue entry. This SOP detects and corrects
+> that drift.
 
 ---
 
@@ -24,108 +24,39 @@ Run task hygiene at **any** of the following triggers:
 | Trigger | Notes |
 |---------|-------|
 | **Daily** (session start) | Default cadence — prevents drift accumulation |
-| **After any operative completes a task** | Operative may have updated dispatch but not registries |
-| **Before dispatching new tasks** | Ensures READY/BLOCKED state is accurate |
+| **After any operative completes a task** | Operative may have updated its dispatch package without advancing the queue entry |
+| **Before dispatching new tasks** | Ensures `READY`/`BACKLOG` state is accurate |
 | **After a branch merge to main** | Merges can leave statuses from the feature branch |
-| **After @gavel audit** | Audits add new tasks; initial status is BACKLOG — run hygiene to advance |
+| **After `@gavel` audit** | Audits add new tasks; initial status is `BACKLOG` — run hygiene to advance |
 | **When another session reports "inconsistent status"** | The canonical fix |
 
 ---
 
 ## Procedure
 
-### Option A — Script (preferred)
+Executed manually by `@ledger` (or the operator acting as `@ledger`):
 
-```bash
-# From repo root
-python3 .syndicate/scripts/task-hygiene.py
+1. **Walk the queue.** Read every entry in the `task_queue` array of `project-map.json`. Valid states are `BACKLOG`, `READY`, `IN_PROGRESS`, `VALIDATING`, `FAILED`, and `COMPLETED` (per `THE_LEDGER.md` §IV).
+2. **Cross-check dispatch packages.** For each task, compare the queue status against the state recorded in its embedded dispatch package. A package marked done while the queue says `IN_PROGRESS` is drift.
+3. **Cross-check the audit trail.** Compare each task against recent `AUDIT_LOG.md` entries. A logged completion, failure, or audit verdict the queue does not reflect is drift.
+4. **Correct the drift.** Update the `task_queue` entry to the evidenced state, applying the state machine:
+   - `BACKLOG → READY` only when all dependencies are `COMPLETED` and a dispatch package exists
+   - `COMPLETED` and `FAILED` are terminal — never regress them
+   - Tasks in `BACKLOG` with no dispatch package need `@ledger` attention before they can advance
+5. **Record the correction.** Append a one-line record to `AUDIT_LOG.md`:
+
+```text
+[DATE] @ledger HYGIENE: [TASK-ID] corrected [old status] → [new status] — [one-line evidence]
 ```
 
-Review the output. If corrections were applied, the script writes them and appends
-to `AUDIT_LOG.md` automatically. No further action needed.
-
-```bash
-# Safe preview before committing
-python3 .syndicate/scripts/task-hygiene.py --dry-run
-
-# Focus on the active phase only (faster, less noise)
-python3 .syndicate/scripts/task-hygiene.py --scope AUDIT
-```
-
-### Option B — Haiku Agent (when script is unavailable)
-
-```python
-# In a Claude Code session
-Agent(
-    description="Daily task hygiene check",
-    subagent_type="general-purpose",
-    model="haiku",
-    prompt=open(".syndicate/scripts/task-hygiene-prompt.md").read()
-)
-```
-
-### Option C — Via @ledger (in-session)
-
-Ask @ledger directly:
-```
-Run task hygiene. Reconcile task-graph.yaml against project-map.json 
-and all dispatch packages, then correct any drift.
-```
-
-@ledger will invoke the script or haiku prompt per `routing.json` rule
-`task-hygiene-to-ledger`.
+If a task cannot be reconciled from the available evidence (conflicting dispatch and audit records, or an operative that may still be active), do not guess — escalate to the operator for manual triage.
 
 ---
 
-## What the Script Checks
+## Future Automation
 
-1. **Status reconciliation** — Compares `task-graph.yaml` status vs `project-map.json`
-   status for every task. Applies the state machine:
-   - `BACKLOG → READY` when all `depends_on` are `COMPLETE` and a dispatch package exists
-   - `BACKLOG/READY → BLOCKED` when any `depends_on` is not `COMPLETE`
-   - `COMPLETE` / `FAILED` are never regressed
-
-2. **Source agreement** — Flags tasks where `task-graph.yaml` and `project-map.json`
-   disagree (e.g., one says `READY`, other says `BACKLOG`)
-
-3. **Stale reservation locks** — Reports any `active_locks` in `RESERVATIONS.json`
-   that may have been left by a crashed or timed-out operative
-
-4. **Dispatch package coverage** — Flags tasks in `BACKLOG`/`BLOCKED`/`READY` with
-   no dispatch package (needs @ledger attention before task can advance)
+The companion task-hygiene script referenced by earlier versions of this SOP was never shipped; this procedure is manual until it exists. The automation gap is tracked as finding M-2 in `CONSIGLIERE_REVIEW_2026-06-10.md`.
 
 ---
 
-## Interpreting the Output
-
-| Icon | Meaning |
-|------|---------|
-| ✅ COMPLETE | Terminal — no action |
-| 🟢 READY | Dispatch package exists, deps clear — safe to dispatch |
-| 🔴 BLOCKED | Waiting on a dependency — do not dispatch |
-| ⬜ BACKLOG | No dispatch package yet — @ledger must create one |
-| 🔄 IN_PROGRESS | Operative is active — do not re-dispatch |
-| ⚠ | Discrepancy or attention required |
-
----
-
-## Known Limitation — YAML Defect
-
-`tasks/task-graph.yaml` has a pre-existing structural defect: Phase 8 tasks (AUDIT-*)
-use column-0 indentation while Phases 2–7 use 2-space indentation, and there is no
-root key. The file is not parseable by `yaml.safe_load`. The hygiene script uses
-regex parsing to work around this. Do not attempt to fix this with `yaml.safe_load`
-— the file must be manually restructured first (tracked as a backlog cleanup item).
-
----
-
-## After Running
-
-If corrections were applied:
-- Both `tasks/task-graph.yaml` and `.syndicate/vault/main/project-map.json` are updated
-- `AUDIT_LOG.md` has a new `HYGIENE-RUN` entry
-- No commit is required unless you want to checkpoint the state — hygiene files are
-  Syndicate internal bookkeeping and do not need to be in every commit
-
-If the queue shows `⚠` items the script cannot auto-fix (e.g., missing dispatch
-packages, stale locks), escalate to @ledger for manual triage.
+*This SOP lives in `sops/TASK_HYGIENE_SOP.md`. It is part of the Syndicate Core and applies to every project with a hydrated `project-map.json`.*
