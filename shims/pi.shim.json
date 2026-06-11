@@ -38,7 +38,9 @@
           "low": "deepseek-v3"
         },
         "env_var_api_key": null,
-        "notes": "Tier-based open weights. High (Nemotron) for logic, Medium (Qwen) for code, Low (DeepSeek) for speed."
+        "notes": "Tier-based open weights. High (Nemotron) for logic, Medium (Qwen) for code, Low (DeepSeek) for speed.",
+        "models_verified_on": "2026-04-13",
+        "verification_note": "Model slugs rot as providers rotate offerings. Re-verify with: pi --provider <name> --list-models (or provider docs) and update models_verified_on."
       },
       {
         "name": "openrouter",
@@ -50,9 +52,12 @@
           "openrouter/free"
         ],
         "env_var_api_key": "OPENROUTER_API_KEY",
-        "notes": "Unified interface for proprietary and large open-weight models."
+        "notes": "Unified interface for proprietary and large open-weight models.",
+        "models_verified_on": "2026-04-13",
+        "verification_note": "Model slugs rot as providers rotate offerings. Re-verify with: pi --provider <name> --list-models (or provider docs) and update models_verified_on."
       }
-    ]
+    ],
+    "model_refresh_procedure": "Before relying on this shim after a gap, verify each designated model still exists: run pi --provider <provider> --list-models, update stale slugs, bump models_verified_on, and re-run scripts/validate-shims.sh."
   },
   "agents": {
     "lead": {
