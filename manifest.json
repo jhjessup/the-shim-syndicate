@@ -1,40 +1,45 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "The Shim Syndicate \u2014 Master Registry",
+  "title": "The Shim Syndicate — Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "3.4.0",
+  "active_version": "3.5.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
     "established": "2026-04-03",
     "core_repository": "jhjessup/the-shim-syndicate",
-    "canonical_branch": "claude/master-core-setup-PJkxq"
+    "canonical_branch": "main"
   },
   "versions": [
     {
-      "version": "3.4.0",
-      "released": "2026-04-12",
+      "version": "3.5.0",
+      "released": "2026-06-10",
       "status": "active",
-      "description": "Agent Safety & Concurrency Control. Introduces templates/RESERVATIONS.json and \u00a76.3 Agent Safety Rules to ORACLE.md. Formalizes the @consigliere identity for strategic analysis and anti-pattern detection. Implements a mission-scoped task reservation registry to prevent resource collisions in multi-agent environments.",
+      "description": "Governance True-Up & Launch Protocol Consolidation. Registers all unversioned changes since v3.4.0, remediates the Phase 0 and Phase 1 findings of the 2026-06-10 Consigliere review (CONSIGLIERE_REVIEW_2026-06-10.md), consolidates the triplicated Operative Launch Protocol into a single SOP, removes orphaned files, and corrects the manifest registry itself.",
       "changelog": [
-        "Added templates/RESERVATIONS.json v1.0 \u2014 Dynamic task reservation registry to track active agent locks and resources.",
-        "Updated templates/ORACLE.md \u2014 Added \u00a76.3 Agent Safety & Concurrency Rules (v1.0) defining the reservation protocol, mutation guards, and task expiry rules.",
-        "Formalized identities/THE_CONSIGLIERE.md v1.0 \u2014 Strategic Advisor identity for pattern analysis and Syndicate governance.",
-        "Updated manifest.json \u2014 Promoted to v3.4.0 with comprehensive agent safety integration."
+        "Registered previously unversioned changes from commit 4a49554: PHASE: PRODUCT DESIGN in THE_LEAD.md, §IX Frontend Hygiene Audit in THE_GAVEL.md, templates/UX_AUDIT_PROMPT.md, ORACLE.md §4.5–4.7 and §6.4.",
+        "Phase 0 remediation: pre-commit placeholder detection broadened to all {{...}} tokens; commit-msg hook no longer accepts @gavel FAIL trailers; THE_LEAD.md model binding corrected to Claude Sonnet 4.6+; THE_LEDGER.md Refusal Condition 7 (No Task Absorption); Syndicate hooks installed in the core repo (self-application).",
+        "hooks/pre-commit: fixed CHECK-3 secrets scan — patterns beginning with a dash (private key header) were parsed by grep as options and silently skipped; patterns are now passed with -e.",
+        "Added sops/OPERATIVE_LAUNCH_PROTOCOL.md v1.0 — single canonical launch protocol (tier selection, tier-to-model mapping, governor behavior, dispatch syntax). Removed the three duplicated protocol blocks from Lead, Ledger, and Gavel; resolved Gavel's direct-invocation contradiction — all launches route through scripts/launch-operative.sh.",
+        "Identity version bumps: THE_LEAD.md 3.1→3.2, THE_LEDGER.md 3.0→3.1, THE_GAVEL.md 2.0→2.1 (duplicate §X numbering fixed), THE_OPERATIVE.md header corrected 1.0→1.1.",
+        "manifest.json: canonical_branch corrected to main; superseded version entries collapsed to changelog-only; unimplemented sha256_manifest integrity field removed.",
+        "Removed orphaned files: shims/gavel_audit.py (crashed on first run, dead quota logic), identities/THE_LEDGER.json (referenced by nothing).",
+        "Registered previously untracked assets: sops/TASK_HYGIENE_SOP.md, templates/UX_AUDIT_PROMPT.md, templates/RESERVATIONS.json, and a scripts registry.",
+        "Shims: syndicate_version field redefined as the core version the shim was authored against; all four shims stamped 3.5.0; shims/pi.shim.json registered."
       ],
       "agents": {
         "lead": {
-          "identity_version": "3.1",
+          "identity_version": "3.2",
           "file": "identities/THE_LEAD.md",
           "default_model": "claude-sonnet-4-6"
         },
         "ledger": {
-          "identity_version": "3.0",
+          "identity_version": "3.1",
           "file": "identities/THE_LEDGER.md",
           "default_model": "gemini-2.5-pro"
         },
         "gavel": {
-          "identity_version": "2.0",
+          "identity_version": "2.1",
           "file": "identities/THE_GAVEL.md",
           "default_model": "qwen2.5-coder:32b"
         },
@@ -52,14 +57,17 @@
       "shims_available": [
         "shims/claude.shim.json",
         "shims/gemini.shim.json",
-        "shims/local.shim.json"
+        "shims/local.shim.json",
+        "shims/pi.shim.json"
       ],
       "hooks_available": [
         "hooks/pre-commit",
         "hooks/commit-msg"
       ],
       "sops_available": [
-        "sops/CONTEXT_HYGIENE.md"
+        "sops/CONTEXT_HYGIENE.md",
+        "sops/TASK_HYGIENE_SOP.md",
+        "sops/OPERATIVE_LAUNCH_PROTOCOL.md"
       ],
       "templates_available": [
         "templates/ORACLE.md",
@@ -67,7 +75,14 @@
         "templates/MISSION_BRIEF.md",
         "templates/project-map.json",
         "templates/TEST_DOCTRINE.md",
-        "templates/RESERVATIONS.json"
+        "templates/RESERVATIONS.json",
+        "templates/UX_AUDIT_PROMPT.md"
+      ],
+      "scripts_available": [
+        "scripts/syndicate-init.sh",
+        "scripts/syndicate-session.sh",
+        "scripts/launch-operative.sh",
+        "scripts/update_usage.py"
       ],
       "compatibility": {
         "min_claude_version": "claude-sonnet-4-6",
@@ -88,84 +103,32 @@
         ]
       },
       "integrity": {
-        "released_by": "The Consigliere (Gemini) \u2014 Agent Safety Integration",
-        "sha256_manifest": "PENDING"
+        "released_by": "The Consigliere — Governance True-Up"
       }
+    },
+    {
+      "version": "3.4.0",
+      "released": "2026-04-12",
+      "status": "superseded",
+      "description": "Agent Safety & Concurrency Control. Introduces templates/RESERVATIONS.json and §6.3 Agent Safety Rules to ORACLE.md. Formalizes the @consigliere identity for strategic analysis and anti-pattern detection. Implements a mission-scoped task reservation registry to prevent resource collisions in multi-agent environments.",
+      "changelog": [
+        "Added templates/RESERVATIONS.json v1.0 — Dynamic task reservation registry to track active agent locks and resources.",
+        "Updated templates/ORACLE.md — Added §6.3 Agent Safety & Concurrency Rules (v1.0) defining the reservation protocol, mutation guards, and task expiry rules.",
+        "Formalized identities/THE_CONSIGLIERE.md v1.0 — Strategic Advisor identity for pattern analysis and Syndicate governance.",
+        "Updated manifest.json — Promoted to v3.4.0 with comprehensive agent safety integration."
+      ]
     },
     {
       "version": "3.3.0",
       "released": "2026-04-09",
       "status": "superseded",
-      "description": "Test Doctrine Integration. Introduces templates/TEST_DOCTRINE.md as a two-tier testing specification system. Universal philosophy in the core template; project-specific instantiation in .syndicate/TEST_DOCTRINE.md at hydration time. Extends syndicate-init.sh to stamp the template, updates the pre-commit hook to enforce doctrine integrity, and wires ORACLE.md \u00a74 to reference the doctrine file.",
+      "description": "Test Doctrine Integration. Introduces templates/TEST_DOCTRINE.md as a two-tier testing specification system. Universal philosophy in the core template; project-specific instantiation in .syndicate/TEST_DOCTRINE.md at hydration time. Extends syndicate-init.sh to stamp the template, updates the pre-commit hook to enforce doctrine integrity, and wires ORACLE.md §4 to reference the doctrine file.",
       "changelog": [
-        "Added templates/TEST_DOCTRINE.md v1.0 \u2014 Universal test taxonomy (Unit/Service/Endpoint/Integration), five composability axioms (AX-1 through AX-5), Gavel audit criteria for test quality, test organization standards, and placeholder sections for project-specific instantiation.",
-        "Updated scripts/syndicate-init.sh v2.1 \u2014 Added Step 4.1: stamps TEST_DOCTRINE.md from template into .syndicate/ at project hydration time, substituting PROJECT_NAME, SYNDICATE_VERSION, HYDRATION_DATE, and OPERATOR_NAME. Updated Step 6 to include test_doctrine path in config.json. Updated mission mode (Step 12) to also stamp TEST_DOCTRINE.md into mission vault.",
-        "Updated hooks/pre-commit v2.1 \u2014 Added CHECK-5: Test Doctrine Integrity. Verifies .syndicate/TEST_DOCTRINE.md exists (WARN if absent) and contains no unfilled {{placeholder}} tokens (FAIL if present). Updated check count from 4 to 5.",
-        "Updated templates/ORACLE.md \u2014 Added \u00a74.4 Testing Doctrine with TEST_DOCTRINE path reference and description of the Doctrine's role relative to coverage thresholds."
-      ],
-      "agents": {
-        "lead": {
-          "identity_version": "3.1",
-          "file": "identities/THE_LEAD.md",
-          "default_model": "claude-sonnet-4-6"
-        },
-        "ledger": {
-          "identity_version": "3.0",
-          "file": "identities/THE_LEDGER.md",
-          "default_model": "gemini-2.5-pro"
-        },
-        "gavel": {
-          "identity_version": "2.0",
-          "file": "identities/THE_GAVEL.md",
-          "default_model": "qwen2.5-coder:32b"
-        },
-        "operative": {
-          "identity_version": "1.1",
-          "file": "identities/THE_OPERATIVE.md",
-          "default_model": "task-appropriate"
-        }
-      },
-      "shims_available": [
-        "shims/claude.shim.json",
-        "shims/gemini.shim.json",
-        "shims/local.shim.json"
-      ],
-      "hooks_available": [
-        "hooks/pre-commit",
-        "hooks/commit-msg"
-      ],
-      "sops_available": [
-        "sops/CONTEXT_HYGIENE.md"
-      ],
-      "templates_available": [
-        "templates/ORACLE.md",
-        "templates/AUDIT_LOG.md",
-        "templates/MISSION_BRIEF.md",
-        "templates/project-map.json",
-        "templates/TEST_DOCTRINE.md"
-      ],
-      "compatibility": {
-        "min_claude_version": "claude-sonnet-4-6",
-        "min_gemini_version": "gemini-2.5-pro",
-        "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": [
-          "git",
-          "jq",
-          "tmux",
-          "bash"
-        ],
-        "optional_cli_tools": [
-          "claude",
-          "gemini",
-          "ollama",
-          "opencode",
-          "pi"
-        ]
-      },
-      "integrity": {
-        "released_by": "The Lead (Claude) \u2014 Test Doctrine Integration",
-        "sha256_manifest": "PENDING \u2014 set on first tagged release"
-      }
+        "Added templates/TEST_DOCTRINE.md v1.0 — Universal test taxonomy (Unit/Service/Endpoint/Integration), five composability axioms (AX-1 through AX-5), Gavel audit criteria for test quality, test organization standards, and placeholder sections for project-specific instantiation.",
+        "Updated scripts/syndicate-init.sh v2.1 — Added Step 4.1: stamps TEST_DOCTRINE.md from template into .syndicate/ at project hydration time, substituting PROJECT_NAME, SYNDICATE_VERSION, HYDRATION_DATE, and OPERATOR_NAME. Updated Step 6 to include test_doctrine path in config.json. Updated mission mode (Step 12) to also stamp TEST_DOCTRINE.md into mission vault.",
+        "Updated hooks/pre-commit v2.1 — Added CHECK-5: Test Doctrine Integrity. Verifies .syndicate/TEST_DOCTRINE.md exists (WARN if absent) and contains no unfilled {{placeholder}} tokens (FAIL if present). Updated check count from 4 to 5.",
+        "Updated templates/ORACLE.md — Added §4.4 Testing Doctrine with TEST_DOCTRINE path reference and description of the Doctrine's role relative to coverage thresholds."
+      ]
     },
     {
       "version": "3.2.0",
@@ -173,70 +136,15 @@
       "status": "superseded",
       "description": "Efficiency Tier Integration. Adds Phase 0 Confidence Gate, Surgical Scope, and Tool Minimalism (Silent Drip) to @lead and @operative. Formalizes sub-agent model routing in the Delegation Matrix. Introduces sops/CONTEXT_HYGIENE.md as an operator SOP for session lifecycle management. Adds Session Resource Budget to ORACLE.md template.",
       "changelog": [
-        "Updated THE_LEAD.md v3.1 \u2014 Added Phase 0: Confidence Gate with explicit trigger conditions and interrogation protocol before any execution phase.",
-        "Updated THE_LEAD.md v3.1 \u2014 Added Operational Philosophy \u00a75 Surgical Scope: targeted file reads, no undirected directory scanning.",
-        "Updated THE_LEAD.md v3.1 \u2014 Added Operational Philosophy \u00a76 Tool Minimalism (Silent Drip): CLI-first, MCP tools only for capabilities unavailable via CLI.",
-        "Updated THE_LEAD.md v3.1 \u2014 Expanded Delegation Matrix with explicit Operative Model Binding table: task type to model binding (Haiku/Flash for research, Sonnet/Pro for implementation, local for audit, nested sub-agent for 3+ file surveys).",
-        "Updated THE_OPERATIVE.md v1.1 \u2014 Added Surgical Scope and Tool Minimalism to Operational Philosophy. Sub-agents return actionable delta only \u2014 no raw content.",
-        "Created sops/CONTEXT_HYGIENE.md v1.0 \u2014 Operator SOP for session lifecycle: Snapshot & Compact procedure, 5-minute cache boundary recovery, Session Handoff Block format, anti-pattern register. CLI-specific commands (/compact, /context, /cost, /clear) correctly scoped to operator SOP rather than agent identity files.",
-        "Updated templates/ORACLE.md \u2014 Added \u00a76.4 Session Resource Budget with configurable thresholds for context hygiene trigger, operative delegation threshold, synthesis format, and sub-agent model bindings.",
-        "Eliminated 'High Consigliere v5.0' ghost identity from operator-submitted tier proposal \u2014 no such identity exists in the Syndicate. Confidence gate wired to @lead, not a phantom role."
-      ],
-      "agents": {
-        "lead": {
-          "identity_version": "3.1",
-          "file": "identities/THE_LEAD.md",
-          "default_model": "claude-sonnet-4-6"
-        },
-        "ledger": {
-          "identity_version": "3.0",
-          "file": "identities/THE_LEDGER.md",
-          "default_model": "gemini-2.5-pro"
-        },
-        "gavel": {
-          "identity_version": "2.0",
-          "file": "identities/THE_GAVEL.md",
-          "default_model": "qwen2.5-coder:32b"
-        },
-        "operative": {
-          "identity_version": "1.1",
-          "file": "identities/THE_OPERATIVE.md",
-          "default_model": "task-appropriate"
-        }
-      },
-      "shims_available": [
-        "shims/claude.shim.json",
-        "shims/gemini.shim.json",
-        "shims/local.shim.json"
-      ],
-      "hooks_available": [
-        "hooks/pre-commit",
-        "hooks/commit-msg"
-      ],
-      "sops_available": [
-        "sops/CONTEXT_HYGIENE.md"
-      ],
-      "compatibility": {
-        "min_claude_version": "claude-sonnet-4-6",
-        "min_gemini_version": "gemini-2.5-pro",
-        "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": [
-          "git",
-          "jq",
-          "tmux",
-          "bash"
-        ],
-        "optional_cli_tools": [
-          "claude",
-          "gemini",
-          "ollama",
-          "opencode"
-        ]
-      },
-      "integrity": {
-        "released_by": "The Consigliere v1.0 \u2014 Efficiency Tier Integration",
-        "sha256_manifest": "PENDING \u2014 set on first tagged release"
-      }
+        "Updated THE_LEAD.md v3.1 — Added Phase 0: Confidence Gate with explicit trigger conditions and interrogation protocol before any execution phase.",
+        "Updated THE_LEAD.md v3.1 — Added Operational Philosophy §5 Surgical Scope: targeted file reads, no undirected directory scanning.",
+        "Updated THE_LEAD.md v3.1 — Added Operational Philosophy §6 Tool Minimalism (Silent Drip): CLI-first, MCP tools only for capabilities unavailable via CLI.",
+        "Updated THE_LEAD.md v3.1 — Expanded Delegation Matrix with explicit Operative Model Binding table: task type to model binding (Haiku/Flash for research, Sonnet/Pro for implementation, local for audit, nested sub-agent for 3+ file surveys).",
+        "Updated THE_OPERATIVE.md v1.1 — Added Surgical Scope and Tool Minimalism to Operational Philosophy. Sub-agents return actionable delta only — no raw content.",
+        "Created sops/CONTEXT_HYGIENE.md v1.0 — Operator SOP for session lifecycle: Snapshot & Compact procedure, 5-minute cache boundary recovery, Session Handoff Block format, anti-pattern register. CLI-specific commands (/compact, /context, /cost, /clear) correctly scoped to operator SOP rather than agent identity files.",
+        "Updated templates/ORACLE.md — Added §6.4 Session Resource Budget with configurable thresholds for context hygiene trigger, operative delegation threshold, synthesis format, and sub-agent model bindings.",
+        "Eliminated 'High Consigliere v5.0' ghost identity from operator-submitted tier proposal — no such identity exists in the Syndicate. Confidence gate wired to @lead, not a phantom role."
+      ]
     },
     {
       "version": "3.1.0",
@@ -244,66 +152,14 @@
       "status": "superseded",
       "description": "Operative Tier & Task Queue Integration. Introduces The Operative agent (bounded execution tier), formalizes dispatch package protocol, integrates task queue into project-map.json, and clarifies orchestrator/executor hierarchy.",
       "changelog": [
-        "Added THE_OPERATIVE.md v1.0 \u2014 New fourth agent identity for bounded task execution with dispatch package contract.",
-        "Updated THE_LEAD.md v3.0 \u2014 Added Operative to delegation matrix, refined SDLC phases to include DISPATCH phase.",
-        "Updated THE_LEDGER.md v3.0 \u2014 Refined task queue protocol to generate dispatch packages for @operative instances, embedded task tracking in project-map.json.",
-        "Updated project-map.json template \u2014 Added task_queue section with task status tracking, dispatch package embedding, and operative assignment.",
-        "Updated README.md \u2014 Added Operative to agent team table, clarified orchestrator/executor architecture, updated directory structure.",
+        "Added THE_OPERATIVE.md v1.0 — New fourth agent identity for bounded task execution with dispatch package contract.",
+        "Updated THE_LEAD.md v3.0 — Added Operative to delegation matrix, refined SDLC phases to include DISPATCH phase.",
+        "Updated THE_LEDGER.md v3.0 — Refined task queue protocol to generate dispatch packages for @operative instances, embedded task tracking in project-map.json.",
+        "Updated project-map.json template — Added task_queue section with task status tracking, dispatch package embedding, and operative assignment.",
+        "Updated README.md — Added Operative to agent team table, clarified orchestrator/executor architecture, updated directory structure.",
         "Clarified agent hierarchy: Orchestrators (Lead, Ledger) govern strategy and planning; Gavel and Operative enforce quality and execute work.",
         "Formalized dispatch package spec with required fields: task_definition, context, specification, audit_criteria."
-      ],
-      "agents": {
-        "lead": {
-          "identity_version": "3.0",
-          "file": "identities/THE_LEAD.md",
-          "default_model": "claude-sonnet-4-6"
-        },
-        "ledger": {
-          "identity_version": "3.0",
-          "file": "identities/THE_LEDGER.md",
-          "default_model": "gemini-2.5-pro"
-        },
-        "gavel": {
-          "identity_version": "2.0",
-          "file": "identities/THE_GAVEL.md",
-          "default_model": "qwen2.5-coder:32b"
-        },
-        "operative": {
-          "identity_version": "1.0",
-          "file": "identities/THE_OPERATIVE.md",
-          "default_model": "task-appropriate"
-        }
-      },
-      "shims_available": [
-        "shims/claude.shim.json",
-        "shims/gemini.shim.json",
-        "shims/local.shim.json"
-      ],
-      "hooks_available": [
-        "hooks/pre-commit",
-        "hooks/commit-msg"
-      ],
-      "compatibility": {
-        "min_claude_version": "claude-sonnet-4-6",
-        "min_gemini_version": "gemini-2.5-pro",
-        "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": [
-          "git",
-          "jq",
-          "tmux",
-          "bash"
-        ],
-        "optional_cli_tools": [
-          "claude",
-          "gemini",
-          "ollama",
-          "opencode"
-        ]
-      },
-      "integrity": {
-        "released_by": "The Shim Syndicate \u2014 Operative Tier Integration",
-        "sha256_manifest": "PENDING \u2014 set on first tagged release"
-      }
+      ]
     },
     {
       "version": "2.0.0",
@@ -311,64 +167,17 @@
       "status": "superseded",
       "description": "Branch-Based Mission Architecture. Adds mission-scoped vault isolation, syndicate-session.sh tmux manager with branch detection, Gavel pre-commit and commit-msg hooks, Mission Brief and project-map.json templates, and headless-first identity updates for all three agents.",
       "changelog": [
-        "Added syndicate-session.sh \u2014 tmux session manager with git branch detection and auto-loading of mission ORACLE.md and project-map.json.",
-        "Added Mission Mode to syndicate-init.sh (--mission flag) \u2014 verifies mission/ branch, creates .syndicate/vault/<branch-name>/, generates Mission Brief.",
-        "Added hooks/pre-commit \u2014 Gavel branch guard, Oracle integrity check, secrets scan, Oracle prohibited pattern guard.",
-        "Added hooks/commit-msg \u2014 enforces Syndicate-Audit-Trace trailer on all mission/ branch commits.",
-        "Added templates/MISSION_BRIEF.md \u2014 operator-completed mission context template.",
-        "Added templates/project-map.json \u2014 Ledger's branch-specific Gemini context map template.",
-        "Updated THE_LEAD.md v2.0 \u2014 Branch Integrity (refuse main commits, require Syndicate-Audit-Trace).",
-        "Updated THE_LEDGER.md v2.0 \u2014 Context Switch Protocol (detect branch change, swap project-map.json, announce context load).",
-        "Updated THE_GAVEL.md v2.0 \u2014 Pre-Commit Hook Mode, AUDIT_TRACE trailer output, headless/CLI-only operation.",
+        "Added syndicate-session.sh — tmux session manager with git branch detection and auto-loading of mission ORACLE.md and project-map.json.",
+        "Added Mission Mode to syndicate-init.sh (--mission flag) — verifies mission/ branch, creates .syndicate/vault/<branch-name>/, generates Mission Brief.",
+        "Added hooks/pre-commit — Gavel branch guard, Oracle integrity check, secrets scan, Oracle prohibited pattern guard.",
+        "Added hooks/commit-msg — enforces Syndicate-Audit-Trace trailer on all mission/ branch commits.",
+        "Added templates/MISSION_BRIEF.md — operator-completed mission context template.",
+        "Added templates/project-map.json — Ledger's branch-specific Gemini context map template.",
+        "Updated THE_LEAD.md v2.0 — Branch Integrity (refuse main commits, require Syndicate-Audit-Trace).",
+        "Updated THE_LEDGER.md v2.0 — Context Switch Protocol (detect branch change, swap project-map.json, announce context load).",
+        "Updated THE_GAVEL.md v2.0 — Pre-Commit Hook Mode, AUDIT_TRACE trailer output, headless/CLI-only operation.",
         "All shims and identities updated for headless environment: API keys from $ANTHROPIC_API_KEY / $GOOGLE_API_KEY only."
-      ],
-      "agents": {
-        "lead": {
-          "identity_version": "2.0",
-          "file": "identities/THE_LEAD.md",
-          "default_model": "claude-sonnet-4-6"
-        },
-        "ledger": {
-          "identity_version": "2.0",
-          "file": "identities/THE_LEDGER.md",
-          "default_model": "gemini-2.5-pro"
-        },
-        "gavel": {
-          "identity_version": "2.0",
-          "file": "identities/THE_GAVEL.md",
-          "default_model": "qwen2.5-coder:32b"
-        }
-      },
-      "shims_available": [
-        "shims/claude.shim.json",
-        "shims/gemini.shim.json",
-        "shims/local.shim.json"
-      ],
-      "hooks_available": [
-        "hooks/pre-commit",
-        "hooks/commit-msg"
-      ],
-      "compatibility": {
-        "min_claude_version": "claude-sonnet-4-6",
-        "min_gemini_version": "gemini-2.5-pro",
-        "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": [
-          "git",
-          "jq",
-          "tmux",
-          "bash"
-        ],
-        "optional_cli_tools": [
-          "claude",
-          "gemini",
-          "ollama",
-          "opencode"
-        ]
-      },
-      "integrity": {
-        "released_by": "The Shim Syndicate \u2014 Branch-Based Mission Architecture",
-        "sha256_manifest": "PENDING \u2014 set on first tagged release"
-      }
+      ]
     },
     {
       "version": "1.0.0",
@@ -376,60 +185,18 @@
       "status": "deprecated",
       "description": "Initial master core release. Establishes the three agent identities (Lead, Ledger, Gavel), shim routing layer, hydration script, and audit log template.",
       "changelog": [
-        "Defined THE_LEAD identity \u2014 Principal Architect authority.",
-        "Defined THE_LEDGER identity \u2014 Context Librarian and institutional memory.",
-        "Defined THE_GAVEL identity \u2014 Independent audit authority with OWASP-aligned checklist.",
-        "Created routing.schema.json \u2014 validated shim configuration schema.",
-        "Created claude.shim.json \u2014 Claude-primary routing configuration.",
-        "Created gemini.shim.json \u2014 Gemini-primary routing configuration.",
-        "Created local.shim.json \u2014 Air-gapped local-model routing configuration.",
-        "Created syndicate-init.sh \u2014 Project hydration script.",
-        "Created ORACLE.md template \u2014 Project-specific override system.",
-        "Created AUDIT_LOG.md template \u2014 Permanent decision and audit trail.",
-        "Created README.md \u2014 Deployment and operational documentation."
-      ],
-      "agents": {
-        "lead": {
-          "identity_version": "1.0",
-          "file": "identities/THE_LEAD.md",
-          "default_model": "claude-sonnet-4-6"
-        },
-        "ledger": {
-          "identity_version": "1.0",
-          "file": "identities/THE_LEDGER.md",
-          "default_model": "gemini-2.5-pro"
-        },
-        "gavel": {
-          "identity_version": "1.0",
-          "file": "identities/THE_GAVEL.md",
-          "default_model": "qwen2.5-coder:32b"
-        }
-      },
-      "shims_available": [
-        "shims/claude.shim.json",
-        "shims/gemini.shim.json",
-        "shims/local.shim.json"
-      ],
-      "compatibility": {
-        "min_claude_version": "claude-sonnet-4-6",
-        "min_gemini_version": "gemini-2.5-pro",
-        "min_local_model": "qwen2.5-coder:32b",
-        "required_cli_tools": [
-          "claude",
-          "gemini",
-          "ollama",
-          "opencode"
-        ],
-        "optional_cli_tools": [
-          "git",
-          "jq",
-          "curl"
-        ]
-      },
-      "integrity": {
-        "released_by": "The Shim Syndicate \u2014 Bootstrap",
-        "sha256_manifest": "PENDING \u2014 set on first tagged release"
-      }
+        "Defined THE_LEAD identity — Principal Architect authority.",
+        "Defined THE_LEDGER identity — Context Librarian and institutional memory.",
+        "Defined THE_GAVEL identity — Independent audit authority with OWASP-aligned checklist.",
+        "Created routing.schema.json — validated shim configuration schema.",
+        "Created claude.shim.json — Claude-primary routing configuration.",
+        "Created gemini.shim.json — Gemini-primary routing configuration.",
+        "Created local.shim.json — Air-gapped local-model routing configuration.",
+        "Created syndicate-init.sh — Project hydration script.",
+        "Created ORACLE.md template — Project-specific override system.",
+        "Created AUDIT_LOG.md template — Permanent decision and audit trail.",
+        "Created README.md — Deployment and operational documentation."
+      ]
     }
   ],
   "version_schema": {
@@ -443,7 +210,7 @@
       "agents": "Map of agent handle to identity version, file path, and default model.",
       "shims_available": "Array of shim config file paths included in this version.",
       "compatibility": "Minimum required model versions and CLI tools.",
-      "integrity": "Release author and SHA-256 hash of manifest for tamper detection."
+      "integrity": "Release author attribution."
     }
   },
   "deployment_registry": {

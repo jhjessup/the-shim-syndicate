@@ -1,0 +1,18 @@
+{
+  "mission": "consigliere-remediation",
+  "branch": "mission/consigliere-remediation",
+  "created": "2026-06-10",
+  "project": "the-shim-syndicate",
+  "purpose": "Phase 0 + Phase 1 remediation of CONSIGLIERE_REVIEW_2026-06-10.md findings",
+  "task_queue": [
+    { "task_id": "TASK-P0", "title": "Phase 0: gate hardening, governor restore, Lead binding, hook self-installation", "status": "COMPLETED" },
+    { "task_id": "TASK-P1-5", "title": "Phase 1: manifest v3.5.0 true-up, README sync, shim version policy", "status": "READY" },
+    { "task_id": "TASK-P1-6", "title": "Phase 1: consolidate Operative Launch Protocol into single SOP, de-duplicate identities", "status": "READY" },
+    { "task_id": "TASK-P1-7", "title": "Phase 1: delete orphans (shims/gavel_audit.py, identities/THE_LEDGER.json)", "status": "READY" }
+  ],
+  "protected_paths": [
+    "scripts/syndicate-init.sh",
+    "scripts/syndicate-session.sh",
+    "scripts/launch-operative.sh"
+  ]
+}

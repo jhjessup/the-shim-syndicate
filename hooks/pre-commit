@@ -144,7 +144,7 @@ if [[ "$IS_MISSION" == true ]]; then
     pass "ORACLE.md found."
 
     # Check for unfilled placeholder tokens
-    UNFILLED=$(grep -oE '\{\{[A-Z_]+\}\}' "$MISSION_ORACLE" 2>/dev/null || true)
+    UNFILLED=$(grep -oE '\{\{[^}]+\}\}' "$MISSION_ORACLE" 2>/dev/null || true)
     if [[ -n "$UNFILLED" ]]; then
       fail "ORACLE.md contains unfilled placeholders — complete these before committing:"
       while IFS= read -r token; do
@@ -158,7 +158,7 @@ if [[ "$IS_MISSION" == true ]]; then
 else
   # Non-mission branch: still check the project-level oracle if it exists
   if [[ -f "$MISSION_ORACLE" ]]; then
-    UNFILLED=$(grep -oE '\{\{[A-Z_]+\}\}' "$MISSION_ORACLE" 2>/dev/null || true)
+    UNFILLED=$(grep -oE '\{\{[^}]+\}\}' "$MISSION_ORACLE" 2>/dev/null || true)
     if [[ -n "$UNFILLED" ]]; then
       warn "Project ORACLE.md contains unfilled placeholders. Consider completing it."
     else
@@ -211,7 +211,7 @@ else
     fi
 
     for pattern in "${SECRET_PATTERNS[@]}"; do
-      if git show ":$file" 2>/dev/null | grep -qiE "$pattern"; then
+      if git show ":$file" 2>/dev/null | grep -qiE -e "$pattern"; then
         fail "Possible secret detected in: $file"
         fail "  Pattern matched: $pattern"
         fail "  Move this value to .env and reference it via environment variable."
@@ -287,7 +287,7 @@ else
   pass "TEST_DOCTRINE.md found: $DOCTRINE_PATH"
 
   # Check for unfilled placeholder tokens
-  DOCTRINE_UNFILLED=$(grep -oE '\{\{[A-Z_]+\}\}' "$DOCTRINE_PATH" 2>/dev/null || true)
+  DOCTRINE_UNFILLED=$(grep -oE '\{\{[^}]+\}\}' "$DOCTRINE_PATH" 2>/dev/null || true)
   if [[ -n "$DOCTRINE_UNFILLED" ]]; then
     fail "TEST_DOCTRINE.md contains unfilled placeholders — complete these before committing:"
     while IFS= read -r token; do
