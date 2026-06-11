@@ -22,17 +22,18 @@
 #
 # OPTIONS:
 #   --mode      Integration mode: 'symlink' (default) or 'subtree'
-#   --shim      Shim config to use: 'claude' (default), 'gemini', or 'local'
+#   --shim      Shim config to use: 'claude' (default), 'gemini', 'local', or 'pi'
 #   --operator  Operator name for audit records (quoted string)
 #   --project   Project name (defaults to current directory name)
 #   --core      Path to the Syndicate Core repo (required if not set via env)
 #   --mission   Run in Mission Mode: initialize a branch-specific vault
+#   --yes, -y   Assume "yes" to all confirmation prompts (non-interactive)
 #   --dry-run   Preview all actions without executing them
 #   --help      Show this help message
 #
 # ENVIRONMENT VARIABLES:
 #   SYNDICATE_CORE_PATH     Path to the cloned Syndicate Core repository
-#   SYNDICATE_DEFAULT_SHIM  Default shim to use (claude | gemini | local)
+#   SYNDICATE_DEFAULT_SHIM  Default shim to use (claude | gemini | local | pi)
 #
 # EXAMPLES:
 #   bash syndicate-init.sh --operator "Jane Smith" --shim claude
@@ -68,6 +69,9 @@ log_error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
 log_section() { echo -e "\n${BOLD}── $* ──${RESET}"; }
 dry_run_echo(){ echo -e "${YELLOW}[DRY-RUN]${RESET} Would execute: $*"; }
 
+# Escape a value for safe use as a sed substitution replacement (handles & / \)
+sed_escape() { printf '%s' "$1" | sed -e 's/[&/\\]/\\&/g'; }
+
 # -----------------------------------------------------------------------------
 # Default values
 # -----------------------------------------------------------------------------
@@ -78,6 +82,7 @@ PROJECT_NAME=""
 CORE_PATH="${SYNDICATE_CORE_PATH:-}"
 DRY_RUN=false
 MISSION_MODE=false
+ASSUME_YES=false
 PROJECT_DIR="$(pwd)"
 
 # -----------------------------------------------------------------------------
@@ -99,6 +104,7 @@ while [[ $# -gt 0 ]]; do
     --project)   PROJECT_NAME="$2"; shift 2 ;;
     --core)      CORE_PATH="$2";    shift 2 ;;
     --mission)   MISSION_MODE=true; shift   ;;
+    --yes|-y)    ASSUME_YES=true;   shift   ;;
     --dry-run)   DRY_RUN=true;      shift   ;;
     --help|-h)   usage ;;
     *) log_error "Unknown option: $1"; exit 1 ;;
@@ -152,8 +158,8 @@ if [[ "$MODE" != "symlink" && "$MODE" != "subtree" ]]; then
 fi
 
 # Validate shim
-if [[ "$SHIM" != "claude" && "$SHIM" != "gemini" && "$SHIM" != "local" ]]; then
-  log_error "Invalid --shim value: '$SHIM'. Must be 'claude', 'gemini', or 'local'."
+if [[ "$SHIM" != "claude" && "$SHIM" != "gemini" && "$SHIM" != "local" && "$SHIM" != "pi" ]]; then
+  log_error "Invalid --shim value: '$SHIM'. Must be 'claude', 'gemini', 'local', or 'pi'."
   exit 1
 fi
 
@@ -196,10 +202,14 @@ log_ok "Operator: $OPERATOR"
 # Check for existing hydration
 if [[ -d "$PROJECT_DIR/$SYNDICATE_DIR" ]]; then
   log_warn "A .syndicate/ directory already exists in this project."
-  read -r -p "  Re-initialize and overwrite? (y/N): " confirm
-  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-    log_info "Aborted by user."
-    exit 0
+  if [[ "$ASSUME_YES" == true ]]; then
+    log_info "--yes supplied — re-initializing without prompting."
+  else
+    read -r -p "  Re-initialize and overwrite? (y/N): " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+      log_info "Aborted by user."
+      exit 0
+    fi
   fi
 fi
 
@@ -221,10 +231,14 @@ if [[ "$DRY_RUN" == true ]]; then
   log_warn "DRY-RUN MODE — no changes will be made."
 fi
 
-read -r -p "Proceed with hydration? (y/N): " confirm
-if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-  log_info "Aborted by user."
-  exit 0
+if [[ "$ASSUME_YES" == true ]]; then
+  log_info "--yes supplied — proceeding without prompting."
+else
+  read -r -p "Proceed with hydration? (y/N): " confirm
+  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+    log_info "Aborted by user."
+    exit 0
+  fi
 fi
 
 # -----------------------------------------------------------------------------
@@ -300,23 +314,10 @@ exec_or_dry "cp '$SHIM_SOURCE' '$SHIM_DEST'"
 log_ok "Installed shim config → $STUB_DIR/routing.json (source: ${SHIM}.shim.json)"
 
 # -----------------------------------------------------------------------------
-# Step 3.1: Inject Gavel-specific tool permissions
+# Sed-safe substitution values (user-derived inputs escaped for sed replacement)
 # -----------------------------------------------------------------------------
-log_section "Step 3.1: Injecting Gavel-specific Tool Permissions"
-
-if [[ "$DRY_RUN" == false ]]; then
-  # Read the current routing.json
-  CURRENT_ROUTING_JSON=$(cat "$SHIM_DEST")
-
-  # Use jq to add the --read-only-bash flag to Gavel's cli_flags
-  UPDATED_ROUTING_JSON=$(echo "$CURRENT_ROUTING_JSON" | jq '.agents.gavel.backend_config.cli_flags += ["--read-only-bash"]')
-
-  # Write the modified JSON back
-  echo "$UPDATED_ROUTING_JSON" > "$SHIM_DEST"
-  log_ok "Injected --read-only-bash flag for The Gavel in $SHIM_DEST"
-else
-  dry_run_echo "jq '.agents.gavel.backend_config.cli_flags += ["--read-only-bash"]' '$SHIM_DEST' > '$SHIM_DEST'"
-fi
+ESC_PROJECT="$(sed_escape "$PROJECT_NAME")"
+ESC_OPERATOR="$(sed_escape "$OPERATOR")"
 
 # -----------------------------------------------------------------------------
 # Step 4: Generate ORACLE.md from template
@@ -333,11 +334,11 @@ fi
 
 if [[ "$DRY_RUN" == false ]]; then
   sed \
-    -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+    -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
     -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
     -e "s/{{HYDRATION_DATE}}/$HYDRATION_DATE/g" \
     -e "s/{{SHIM_FILE}}/${SHIM}.shim.json/g" \
-    -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+    -e "s/{{OPERATOR_NAME}}/$ESC_OPERATOR/g" \
     "$ORACLE_TEMPLATE" > "$ORACLE_DEST"
   log_ok "Generated ORACLE.md → $ORACLE_DEST"
 else
@@ -358,10 +359,10 @@ if [[ ! -f "$DOCTRINE_TEMPLATE" ]]; then
 else
   if [[ "$DRY_RUN" == false ]]; then
     sed \
-      -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+      -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
       -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
       -e "s/{{HYDRATION_DATE}}/$HYDRATION_DATE/g" \
-      -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+      -e "s/{{OPERATOR_NAME}}/$ESC_OPERATOR/g" \
       "$DOCTRINE_TEMPLATE" > "$DOCTRINE_DEST"
     log_ok "Generated TEST_DOCTRINE.md → $DOCTRINE_DEST"
     log_info "Complete all remaining {{placeholder}} sections in TEST_DOCTRINE.md before committing:"
@@ -388,7 +389,7 @@ fi
 
 if [[ "$DRY_RUN" == false ]]; then
   sed \
-    -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+    -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
     -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
     -e "s/{{HYDRATION_DATE}}/$HYDRATION_DATE/g" \
     "$AUDIT_TEMPLATE" > "$AUDIT_DEST"
@@ -430,15 +431,19 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# Step 7: Update Syndicate Core deployment registry
+# Step 7: Update local deployment registry (gitignored — never touches manifest.json)
 # -----------------------------------------------------------------------------
-log_section "Step 7: Registering Deployment in Syndicate Core"
+log_section "Step 7: Registering Deployment in Local Registry"
 
-MANIFEST_PATH="$CORE_PATH/manifest.json"
+REGISTRY_PATH="$CORE_PATH/deployments.local.json"
 
 if [[ "$DRY_RUN" == false ]]; then
-  # Read existing entries
-  EXISTING_REGISTRY="$(jq '.deployment_registry.entries' "$MANIFEST_PATH")"
+  # Create the local registry if it does not exist yet
+  if [[ ! -f "$REGISTRY_PATH" ]]; then
+    cat > "$REGISTRY_PATH" <<'EOF'
+{"description": "Local deployment registry — gitignored. Populated by syndicate-init.sh at hydration time.", "entries": []}
+EOF
+  fi
 
   # Build new entry
   NEW_ENTRY=$(jq -n \
@@ -461,16 +466,16 @@ if [[ "$DRY_RUN" == false ]]; then
       project_path: $path
     }')
 
-  # Append to manifest
-  UPDATED_MANIFEST="$(jq \
+  # Append to the local registry
+  UPDATED_REGISTRY="$(jq \
     --argjson new_entry "$NEW_ENTRY" \
-    '.deployment_registry.entries += [$new_entry]' \
-    "$MANIFEST_PATH")"
+    '.entries += [$new_entry]' \
+    "$REGISTRY_PATH")"
 
-  echo "$UPDATED_MANIFEST" > "$MANIFEST_PATH"
-  log_ok "Registered deployment in $MANIFEST_PATH"
+  echo "$UPDATED_REGISTRY" > "$REGISTRY_PATH"
+  log_ok "Registered deployment in $REGISTRY_PATH"
 else
-  dry_run_echo "Update deployment_registry in $MANIFEST_PATH"
+  dry_run_echo "Update entries in $REGISTRY_PATH"
 fi
 
 # -----------------------------------------------------------------------------
@@ -534,6 +539,7 @@ if [[ "$MISSION_MODE" == true ]]; then
   fi
 
   MISSION_NAME="${CURRENT_BRANCH#mission/}"
+  ESC_MISSION="$(sed_escape "$MISSION_NAME")"
   # Vault directory name: replace any remaining / with - for filesystem safety
   VAULT_DIRNAME="${CURRENT_BRANCH//\//-}"
   VAULT_DIR="$STUB_DIR/vault/${VAULT_DIRNAME}"
@@ -567,11 +573,11 @@ if [[ "$MISSION_MODE" == true ]]; then
     BRIEF_DEST="$VAULT_DIR/MISSION_BRIEF.md"
     if [[ "$DRY_RUN" == false ]]; then
       sed \
-        -e "s/{{MISSION_NAME}}/$MISSION_NAME/g" \
+        -e "s/{{MISSION_NAME}}/$ESC_MISSION/g" \
         -e "s/{{MISSION_DATE}}/$MISSION_DATE/g" \
-        -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+        -e "s/{{OPERATOR_NAME}}/$ESC_OPERATOR/g" \
         -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
-        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+        -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
         "$MISSION_BRIEF_TEMPLATE" > "$BRIEF_DEST"
       log_ok "Mission Brief generated → $BRIEF_DEST"
     else
@@ -586,11 +592,11 @@ if [[ "$MISSION_MODE" == true ]]; then
   if [[ -f "$ORACLE_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
-        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME — mission\/$MISSION_NAME/g" \
+        -e "s/{{PROJECT_NAME}}/$ESC_PROJECT — mission\/$ESC_MISSION/g" \
         -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
         -e "s/{{HYDRATION_DATE}}/$MISSION_DATE/g" \
         -e "s/{{SHIM_FILE}}/${SHIM}.shim.json/g" \
-        -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+        -e "s/{{OPERATOR_NAME}}/$ESC_OPERATOR/g" \
         "$ORACLE_TEMPLATE" > "$VAULT_ORACLE"
       log_ok "Mission ORACLE.md generated → $VAULT_ORACLE"
     else
@@ -606,10 +612,10 @@ if [[ "$MISSION_MODE" == true ]]; then
   if [[ -f "$MAP_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
-        -e "s/{{MISSION_NAME}}/$MISSION_NAME/g" \
+        -e "s/{{MISSION_NAME}}/$ESC_MISSION/g" \
         -e "s/{{MISSION_DATE}}/$MISSION_DATE/g" \
         -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
-        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME/g" \
+        -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
         "$MAP_TEMPLATE" > "$VAULT_MAP"
       log_ok "project-map.json generated → $VAULT_MAP"
     else
@@ -619,15 +625,31 @@ if [[ "$MISSION_MODE" == true ]]; then
     log_warn "project-map.json template not found — skipping."
   fi
 
+  # RESERVATIONS.json for this mission (file-ownership reservation ledger)
+  RESERVATIONS_TEMPLATE="$CORE_PATH/templates/RESERVATIONS.json"
+  VAULT_RESERVATIONS="$VAULT_DIR/RESERVATIONS.json"
+  if [[ -f "$RESERVATIONS_TEMPLATE" ]]; then
+    if [[ "$DRY_RUN" == false ]]; then
+      sed \
+        -e "s/{{project_name}}/$ESC_PROJECT/g" \
+        "$RESERVATIONS_TEMPLATE" > "$VAULT_RESERVATIONS"
+      log_ok "RESERVATIONS.json generated → $VAULT_RESERVATIONS"
+    else
+      dry_run_echo "sed [template substitution] '$RESERVATIONS_TEMPLATE' → '$VAULT_RESERVATIONS'"
+    fi
+  else
+    log_warn "RESERVATIONS.json template not found — skipping."
+  fi
+
   # TEST_DOCTRINE.md for this mission (inherits from project template)
   VAULT_DOCTRINE="$VAULT_DIR/TEST_DOCTRINE.md"
   if [[ -f "$DOCTRINE_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
-        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME — mission\/$MISSION_NAME/g" \
+        -e "s/{{PROJECT_NAME}}/$ESC_PROJECT — mission\/$ESC_MISSION/g" \
         -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
         -e "s/{{HYDRATION_DATE}}/$MISSION_DATE/g" \
-        -e "s/{{OPERATOR_NAME}}/$OPERATOR/g" \
+        -e "s/{{OPERATOR_NAME}}/$ESC_OPERATOR/g" \
         "$DOCTRINE_TEMPLATE" > "$VAULT_DOCTRINE"
       log_ok "Mission TEST_DOCTRINE.md generated → $VAULT_DOCTRINE"
     else
@@ -643,7 +665,7 @@ if [[ "$MISSION_MODE" == true ]]; then
   if [[ -f "$AUDIT_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
-        -e "s/{{PROJECT_NAME}}/$PROJECT_NAME — mission\/$MISSION_NAME/g" \
+        -e "s/{{PROJECT_NAME}}/$ESC_PROJECT — mission\/$ESC_MISSION/g" \
         -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
         -e "s/{{HYDRATION_DATE}}/$MISSION_DATE/g" \
         "$AUDIT_TEMPLATE" > "$VAULT_AUDIT"

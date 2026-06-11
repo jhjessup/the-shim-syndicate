@@ -2,7 +2,7 @@
 # =============================================================================
 # pre-commit — The Gavel's Branch Integrity Hook
 # =============================================================================
-# Version: 2.1.0
+# Version: 2.2.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
@@ -23,6 +23,10 @@
 #                               contains no unfilled {{placeholder}} tokens.
 #                               Missing file is a warning; unfilled tokens are a
 #                               hard FAIL (same treatment as ORACLE.md).
+#   [CHECK-6] SHIM SCHEMA     — When staged changes touch shims/*.json, runs
+#                               scripts/validate-shims.sh (core repo only) and
+#                               blocks the commit if any shim fails to validate
+#                               against routing.schema.json.
 #
 # INSTALLATION:
 #   # From the Syndicate core — install into a target project:
@@ -59,6 +63,7 @@ INFO="${CYAN}[INFO]${RESET}"
 SYNDICATE_DIR=".syndicate"
 FAIL_COUNT=0
 WARN_COUNT=0
+TOTAL_CHECKS=6
 
 fail() { echo -e "${FAIL} $*" >&2; (( FAIL_COUNT++ )) || true; }
 warn() { echo -e "${WARN} $*"; (( WARN_COUNT++ )) || true; }
@@ -302,6 +307,25 @@ fi
 echo ""
 
 # -----------------------------------------------------------------------------
+# CHECK-6: Shim Schema Validation
+# Core-repo scoped: when staged changes touch shims/*.json, run the shim
+# validator so an invalid shim or schema change can never land.
+# -----------------------------------------------------------------------------
+echo -e "${BOLD}── CHECK-6: Shim Schema Validation ──${RESET}"
+
+if echo "$STAGED_FILES" | grep -qE '^shims/.*\.json$' && [[ -f "$PROJECT_DIR/scripts/validate-shims.sh" ]]; then
+  if bash "$PROJECT_DIR/scripts/validate-shims.sh"; then
+    pass "All shim configurations validate against routing.schema.json."
+  else
+    fail "Shim schema validation failed — staged shim/schema changes do not validate."
+  fi
+else
+  info "No staged shim changes — skipping."
+fi
+
+echo ""
+
+# -----------------------------------------------------------------------------
 # Result
 # -----------------------------------------------------------------------------
 echo -e "${BOLD}── Gavel Pre-Commit Verdict ──${RESET}"
@@ -317,7 +341,7 @@ if [[ "$FAIL_COUNT" -gt 0 ]]; then
   exit 1
 else
   echo ""
-  echo -e "${GREEN}${BOLD}  COMMIT CLEARED — All $((5)) checks passed${RESET}"
+  echo -e "${GREEN}${BOLD}  COMMIT CLEARED — All ${TOTAL_CHECKS} checks passed${RESET}"
   [[ "$WARN_COUNT" -gt 0 ]] && \
     echo -e "  ${YELLOW}${WARN_COUNT} warning(s) noted — review recommended but not blocking.${RESET}"
   echo ""

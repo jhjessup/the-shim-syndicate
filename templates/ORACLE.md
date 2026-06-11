@@ -236,10 +236,10 @@ MAX_SUBJECT_LENGTH: {{e.g., 72 characters}}
 ```
 
 ### 6.3 Agent Safety & Concurrency Rules
-- RULE_1: **Resource Reservation Required** — Every agent must check `.syndicate/vault/RESERVATIONS.json` before starting a task that modifies files or workspace state.
+- RULE_1: **Resource Reservation Required** — Every agent must check `.syndicate/vault/RESERVATIONS.json` (use `scripts/reserve.sh claim|release|status|sweep` — manual JSON edits are prohibited) before starting a task that modifies files or workspace state.
 - RULE_2: **No Overlap on Mutation** — An agent must NOT modify a file or shared resource currently locked by another task.
 - RULE_3: **State Sanitization Restriction** — Destructive cleanup (`rm -rf`, `git clean`) is prohibited while any task is `ACTIVE` in the reservation registry.
-- RULE_4: **Task Expiry** — Reservations expire after 4 hours of inactivity or if the associated PID is no longer running.
+- RULE_4: **Task Expiry** — Reservations expire after 4 hours of inactivity or if the associated PID is no longer running. Run `scripts/reserve.sh sweep` to clear stale locks.
 - RULE_5: **Lock File Atomicity** — See §6.4. Any agent that runs `npm install` (or equivalent) must include the updated lock file in the same commit.
 
 ### 6.4 Frontend Dependency Workflow Rule

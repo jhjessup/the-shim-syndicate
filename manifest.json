@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The Shim Syndicate — Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "3.5.0",
+  "active_version": "3.6.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,9 +12,106 @@
   },
   "versions": [
     {
+      "version": "3.6.0",
+      "released": "2026-06-11",
+      "status": "active",
+      "description": "Mechanism Debt Payoff. Phase 2 of the Consigliere remediation (CONSIGLIERE_REVIEW_2026-06-10.md): converts documented-but-unimplemented behaviors into working, tested mechanisms — schema v2 with shim validation, the RESERVATIONS concurrency tool, evidence-bound audit traces, hydration-script robustness, and an honest session-manager downscope. No identity files were modified.",
+      "changelog": [
+        "Schema v2 (routing.schema.json 2.0.0, backward-compatible): pi backend, openrouter provider, optional operative/consigliere agent keys, cli_profile/invocation_template/identity_injection properties, route_to extended. All four shims now validate.",
+        "Added scripts/validate-shims.sh — python3-jsonschema validator with jq structural fallback; wired into pre-commit v2.2.0 as CHECK-6 (runs when staged changes touch shims/*.json).",
+        "Added scripts/reserve.sh — working RESERVATIONS mechanism (claim/release/status/sweep, 4-hour expiry, dead-PID sweep, atomic jq writes); syndicate-init.sh stamps RESERVATIONS.json into mission vaults; ORACLE template §6.3 now mandates the tool over manual JSON edits.",
+        "Added scripts/audit-trace.sh — evidence-bound audit traces: appends a hashed audit entry to AUDIT_LOG.md and emits a 3-field trailer; commit-msg hook v2.1.0 verifies trailer hashes against the branch audit log (transitional: hashless legacy trailers warn but pass).",
+        "syndicate-init.sh hardened: pi shim deployable via --shim; removed nonexistent --read-only-bash injection that broke Gavel invocation; sed-escaping of operator/project/mission input; deployment registry moved from manifest.json to gitignored deployments.local.json (hydration no longer dirties the core repo); --yes/-y headless flag.",
+        "syndicate-session.sh v2.1.0 honest downscope: pre-types correct launch commands into tmux windows without auto-executing (operator confirms with Enter); removed fabricated --system-file/--context flags, dead CMD_LEAD code, and the variable-scope bug that left identity paths empty.",
+        "sops/TASK_HYGIENE_SOP.md v1.1: phantom toolchain references (task-hygiene.py, task-graph.yaml, ORACLE §7.1) removed; manual procedure aligned to the project-map.json task_queue that actually exists; future automation tracked as finding M-2.",
+        "sops/CONTEXT_HYGIENE.md: positional ORACLE §6.4 reference replaced with named Session Resource Budget reference."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "3.2",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "3.1",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.1",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        },
+        "operative": {
+          "identity_version": "1.1",
+          "file": "identities/THE_OPERATIVE.md",
+          "default_model": "task-appropriate"
+        },
+        "consigliere": {
+          "identity_version": "1.0",
+          "file": "identities/THE_CONSIGLIERE.md",
+          "default_model": "claude-sonnet-4-6"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json",
+        "shims/pi.shim.json"
+      ],
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/commit-msg"
+      ],
+      "sops_available": [
+        "sops/CONTEXT_HYGIENE.md",
+        "sops/TASK_HYGIENE_SOP.md",
+        "sops/OPERATIVE_LAUNCH_PROTOCOL.md"
+      ],
+      "templates_available": [
+        "templates/ORACLE.md",
+        "templates/AUDIT_LOG.md",
+        "templates/MISSION_BRIEF.md",
+        "templates/project-map.json",
+        "templates/TEST_DOCTRINE.md",
+        "templates/RESERVATIONS.json",
+        "templates/UX_AUDIT_PROMPT.md"
+      ],
+      "scripts_available": [
+        "scripts/syndicate-init.sh",
+        "scripts/syndicate-session.sh",
+        "scripts/launch-operative.sh",
+        "scripts/update_usage.py",
+        "scripts/reserve.sh",
+        "scripts/audit-trace.sh",
+        "scripts/validate-shims.sh"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode",
+          "pi"
+        ]
+      },
+      "integrity": {
+        "released_by": "The Consigliere — Mechanism Debt Payoff"
+      }
+    },
+    {
       "version": "3.5.0",
       "released": "2026-06-10",
-      "status": "active",
+      "status": "superseded",
       "description": "Governance True-Up & Launch Protocol Consolidation. Registers all unversioned changes since v3.4.0, remediates the Phase 0 and Phase 1 findings of the 2026-06-10 Consigliere review (CONSIGLIERE_REVIEW_2026-06-10.md), consolidates the triplicated Operative Launch Protocol into a single SOP, removes orphaned files, and corrects the manifest registry itself.",
       "changelog": [
         "Registered previously unversioned changes from commit 4a49554: PHASE: PRODUCT DESIGN in THE_LEAD.md, §IX Frontend Hygiene Audit in THE_GAVEL.md, templates/UX_AUDIT_PROMPT.md, ORACLE.md §4.5–4.7 and §6.4.",

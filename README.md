@@ -2,7 +2,7 @@
 
 **An independent, portable AI development team — deployable to any project.**
 
-The Shim Syndicate is a structured, version-controlled system for deploying a multi-agent AI development team into any software project. It defines three specialized agent identities, a backend routing layer (the "shim"), and a hydration mechanism that installs a lightweight project stub without contaminating the host repository.
+The Shim Syndicate is a structured, version-controlled system for deploying a multi-agent AI development team into any software project. It defines five specialized agent identities, a backend routing layer (the "shim"), and a hydration mechanism that installs a lightweight project stub without contaminating the host repository.
 
 ---
 
@@ -67,7 +67,10 @@ the-shim-syndicate/
     ├── syndicate-init.sh              # Project hydration script
     ├── syndicate-session.sh           # tmux session manager with branch detection
     ├── launch-operative.sh            # Operative launcher (tier routing + capacity governor)
-    └── update_usage.py                # Claude capacity usage tracker
+    ├── update_usage.py                # Claude capacity usage tracker
+    ├── reserve.sh                     # Task reservation registry (claim/release/status/sweep)
+    ├── audit-trace.sh                 # Evidence-bound audit trailers (generate/verify)
+    └── validate-shims.sh              # Shim schema validator (pre-commit CHECK-6)
 ```
 
 ---
@@ -111,7 +114,8 @@ bash ~/syndicate/scripts/syndicate-init.sh \
 | `--core` | path | `$SYNDICATE_CORE_PATH` env | Path to the cloned Syndicate Core |
 | `--operator` | string | `git config user.name` | Your name for audit records |
 | `--project` | string | current directory name | Project identifier |
-| `--shim` | `claude`, `gemini`, `local` | `claude` | Which routing config to activate |
+| `--shim` | `claude`, `gemini`, `local`, `pi` | `claude` | Which routing config to activate |
+| `--yes` | — | false | Skip interactive confirmations (headless use) |
 | `--mode` | `symlink`, `subtree` | `symlink` | How to link the Core to the project |
 | `--dry-run` | — | false | Preview all actions without executing |
 
@@ -269,5 +273,5 @@ jq '.deployment_registry.entries' ~/syndicate/manifest.json
 
 ---
 
-*The Shim Syndicate — Version 3.5.0*  
+*The Shim Syndicate — Version 3.6.0*  
 *Professional-grade AI development, deployable anywhere.*

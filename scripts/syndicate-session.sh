@@ -2,14 +2,19 @@
 # =============================================================================
 # syndicate-session.sh — The Shim Syndicate tmux Session Manager
 # =============================================================================
-# Version: 2.0.0
+# Version: 2.1.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
-#   Manages persistent tmux sessions for The Shim Syndicate in a headless /
-#   remote terminal environment. On start or attach it detects the current Git
-#   branch. If the branch matches the mission/ prefix it automatically loads
-#   the branch-specific ORACLE.md and project-map.json into each agent window.
+#   Creates the Syndicate tmux window layout in a headless / remote terminal
+#   environment. On start or attach it loads .env, detects the current Git
+#   branch (mission/ branches resolve the branch-specific ORACLE.md and
+#   project-map.json), exports SYNDICATE_* variables into the tmux session,
+#   and pre-types each agent's launch command into its window for operator
+#   confirmation. It does NOT auto-start agents: the lead window receives a
+#   full working claude command; the ledger and gavel windows receive clearly
+#   labeled TEMPLATE stubs (correct CLI flags vary) carrying the real identity
+#   and context file paths. The operator reviews each line and presses Enter.
 #
 # USAGE:
 #   bash syndicate-session.sh [COMMAND] [OPTIONS]
@@ -47,7 +52,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
-SCRIPT_VERSION="2.0.0"
+SCRIPT_VERSION="2.1.0"
 SYNDICATE_DIR=".syndicate"
 
 RED='\033[0;31m'
@@ -182,62 +187,60 @@ detect_mission_context() {
 }
 
 # -----------------------------------------------------------------------------
-# Step 3: Build per-agent context loading commands
+# Step 3: Resolve identity paths and compose per-agent launch commands
+#
+# Sets GLOBALS consumed by create_session():
+#   lead_identity / ledger_identity / gavel_identity — resolved identity paths
+#   LEAD_CMD   — full working claude command (flags per README.md
+#                "Starting The Lead": --system-prompt + --append-system-prompt)
+#   LEDGER_CMD — TEMPLATE stub: correct gemini CLI flags are uncertain, so the
+#                window receives the real file paths for the operator to adapt
+#   GAVEL_CMD  — TEMPLATE stub (opencode) or plain ollama run + paste hint
 # -----------------------------------------------------------------------------
 build_agent_commands() {
-  local oracle_flag=""
-  local map_flag=""
-
   if [[ -f "$MISSION_ORACLE" ]]; then
-    oracle_flag="--context '$MISSION_ORACLE'"
     log_ok "ORACLE.md context: $MISSION_ORACLE"
   else
     log_warn "ORACLE.md not found at $MISSION_ORACLE — agents will start without project context."
   fi
 
   if [[ -f "$MISSION_MAP" ]]; then
-    map_flag="--context '$MISSION_MAP'"
     log_ok "project-map.json context: $MISSION_MAP"
   else
     log_warn "project-map.json not found at $MISSION_MAP"
   fi
 
-  # Identity file paths (prefer mission vault override, fall back to core)
+  # Identity file paths (prefer mission vault override, fall back to core).
+  # Deliberately NOT local — create_session() reads these globals.
   local core_path="${SYNDICATE_CORE_PATH:-$STUB_DIR/core}"
 
-  local lead_identity="$core_path/identities/THE_LEAD.md"
-  local ledger_identity="$core_path/identities/THE_LEDGER.md"
-  local gavel_identity="$core_path/identities/THE_GAVEL.md"
+  lead_identity="$core_path/identities/THE_LEAD.md"
+  ledger_identity="$core_path/identities/THE_LEDGER.md"
+  gavel_identity="$core_path/identities/THE_GAVEL.md"
 
   # Check for mission-local identity overrides in vault
   [[ -f "$MISSION_VAULT/THE_LEAD.md"   ]] && lead_identity="$MISSION_VAULT/THE_LEAD.md"
   [[ -f "$MISSION_VAULT/THE_LEDGER.md" ]] && ledger_identity="$MISSION_VAULT/THE_LEDGER.md"
   [[ -f "$MISSION_VAULT/THE_GAVEL.md"  ]] && gavel_identity="$MISSION_VAULT/THE_GAVEL.md"
 
-  # --- The Lead: claude CLI ---
-  CMD_LEAD="ANTHROPIC_API_KEY=\"\$ANTHROPIC_API_KEY\" claude \\"
-  CMD_LEAD+="  --system-prompt '$(cat "$lead_identity" 2>/dev/null | head -1 || echo "THE_LEAD identity")' \\"
-  CMD_LEAD+="  $oracle_flag"
-  # Simplified single-line version for tmux send-keys
-  CMD_LEAD_SIMPLE="claude --system-file '${lead_identity}' ${oracle_flag}"
+  # --- The Lead: claude CLI (documented flags — see README.md "Starting The Lead") ---
+  LEAD_CMD="claude --system-prompt \"\$(cat '${lead_identity}')\""
+  if [[ -f "$MISSION_ORACLE" ]]; then
+    LEAD_CMD+=" --append-system-prompt \"\$(cat '${MISSION_ORACLE}')\""
+  fi
 
-  # --- The Ledger: gemini CLI ---
-  CMD_LEDGER_SIMPLE="GOOGLE_API_KEY=\"\$GOOGLE_API_KEY\" gemini --system-file '${ledger_identity}' ${oracle_flag} ${map_flag}"
+  # --- The Ledger: gemini CLI — flags vary by CLI version; provide a stub + real paths ---
+  LEDGER_CMD="gemini  # TEMPLATE — adapt flags. identity: ${ledger_identity} | context: ${MISSION_ORACLE} ${MISSION_MAP}"
 
   # --- The Gavel: opencode or ollama ---
   local gavel_model="${OPENCODE_MODEL:-qwen2.5-coder:32b}"
   if command -v opencode &>/dev/null; then
-    CMD_GAVEL_SIMPLE="opencode --model '${gavel_model}' --system-file '${gavel_identity}' ${oracle_flag}"
+    GAVEL_CMD="opencode --model '${gavel_model}'  # TEMPLATE — adapt flags. identity: ${gavel_identity} | context: ${MISSION_ORACLE}"
   else
-    CMD_GAVEL_SIMPLE="ollama run '${gavel_model}'"
-    log_warn "opencode not found — The Gavel will use ollama run (no system-file flag support)."
+    GAVEL_CMD="ollama run '${gavel_model}'  # then paste identity as system prompt: ${gavel_identity}"
+    log_warn "opencode not found — The Gavel will use ollama run."
     log_warn "Manually paste $gavel_identity contents as system prompt."
   fi
-
-  # Export for use in session creation
-  LEAD_CMD="$CMD_LEAD_SIMPLE"
-  LEDGER_CMD="$CMD_LEDGER_SIMPLE"
-  GAVEL_CMD="$CMD_GAVEL_SIMPLE"
 }
 
 # -----------------------------------------------------------------------------
@@ -294,6 +297,9 @@ create_session() {
     dry_run_echo "tmux new-window -t '$SESSION_NAME' -n lead"
     dry_run_echo "tmux new-window -t '$SESSION_NAME' -n ledger"
     dry_run_echo "tmux new-window -t '$SESSION_NAME' -n gavel"
+    dry_run_echo "tmux send-keys (no Enter) lead   → $LEAD_CMD"
+    dry_run_echo "tmux send-keys (no Enter) ledger → $LEDGER_CMD"
+    dry_run_echo "tmux send-keys (no Enter) gavel  → $GAVEL_CMD"
     dry_run_echo "tmux attach-session -t '$SESSION_NAME'"
     return
   fi
@@ -317,20 +323,29 @@ $(mission_banner)
 __BANNER__
 " Enter
 
+  # Each agent window gets its context echoed (executed), then its launch
+  # command PRE-TYPED via send-keys WITHOUT the Enter terminator. This is a
+  # deliberate design choice: agents are never auto-started. The operator
+  # reviews the typed command — adapting the ledger/gavel TEMPLATE stubs to
+  # the locally installed CLI flags — and presses Enter to launch.
+
   # Window 1 — lead
   tmux new-window -t "$SESSION_NAME" -n "lead"
   tmux send-keys -t "$SESSION_NAME:lead" \
-    "cd '$PROJECT_DIR' && echo '[@lead] Loading context...' && echo 'Identity: ${lead_identity:-THE_LEAD.md}' && echo 'Oracle  : $MISSION_ORACLE'" Enter
+    "cd '$PROJECT_DIR' && echo '[@lead] Loading context...' && echo 'Identity: $lead_identity' && echo 'Oracle  : $MISSION_ORACLE'" Enter
+  tmux send-keys -t "$SESSION_NAME:lead" -l "$LEAD_CMD"
 
   # Window 2 — ledger
   tmux new-window -t "$SESSION_NAME" -n "ledger"
   tmux send-keys -t "$SESSION_NAME:ledger" \
-    "cd '$PROJECT_DIR' && echo '[@ledger] Loading context...' && echo 'Identity: ${ledger_identity:-THE_LEDGER.md}' && echo 'Oracle  : $MISSION_ORACLE' && echo 'Map     : $MISSION_MAP'" Enter
+    "cd '$PROJECT_DIR' && echo '[@ledger] Loading context...' && echo 'Identity: $ledger_identity' && echo 'Oracle  : $MISSION_ORACLE' && echo 'Map     : $MISSION_MAP'" Enter
+  tmux send-keys -t "$SESSION_NAME:ledger" -l "$LEDGER_CMD"
 
   # Window 3 — gavel
   tmux new-window -t "$SESSION_NAME" -n "gavel"
   tmux send-keys -t "$SESSION_NAME:gavel" \
-    "cd '$PROJECT_DIR' && echo '[@gavel] Audit authority ready.' && echo 'Identity: ${gavel_identity:-THE_GAVEL.md}' && echo 'Oracle  : $MISSION_ORACLE' && echo '' && echo 'Pre-commit hook: $STUB_DIR/hooks/pre-commit'" Enter
+    "cd '$PROJECT_DIR' && echo '[@gavel] Audit authority ready.' && echo 'Identity: $gavel_identity' && echo 'Oracle  : $MISSION_ORACLE' && echo '' && echo 'Pre-commit hook: $STUB_DIR/hooks/pre-commit'" Enter
+  tmux send-keys -t "$SESSION_NAME:gavel" -l "$GAVEL_CMD"
 
   # Focus mission window on attach
   tmux select-window -t "$SESSION_NAME:mission"
@@ -413,12 +428,6 @@ log_section "Syndicate Session Manager v${SCRIPT_VERSION}"
 load_env
 detect_mission_context
 build_agent_commands
-
-# Export identity paths set inside build_agent_commands
-# (variables are set in the function scope but used in create_session)
-lead_identity="${lead_identity:-}"
-ledger_identity="${ledger_identity:-}"
-gavel_identity="${gavel_identity:-}"
 
 case "$COMMAND" in
   start)   create_session ;;

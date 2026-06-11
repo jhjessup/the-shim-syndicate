@@ -15,7 +15,7 @@
 
 Execute this procedure at **any** of the following triggers:
 
-- Context load reaches the threshold defined in `ORACLE.md §6.4` (`CONTEXT_HYGIENE_THRESHOLD`, default: 60%)
+- Context load reaches the threshold defined in `ORACLE.md` — Session Resource Budget section (`CONTEXT_HYGIENE_THRESHOLD`, default: 60%)
 - Before beginning a major refactor or phase transition
 - Before handing off to a different agent (e.g., switching from @lead session to @gavel audit)
 - If you are stepping away from the terminal for more than 5 minutes (cache boundary)

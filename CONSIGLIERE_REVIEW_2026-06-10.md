@@ -275,3 +275,22 @@ Three systemic causes explain ~90% of the findings:
 **Token-burn payoff (H-5):** ~160 lines of duplicated protocol removed from identity system prompts ≈ 4–4.5k tokens saved per 3-agent session, recurring.
 
 **Remaining open:** C-2 full fix (hash-bound audit trailers) and all Phase 2 items — schema v2 + shim validation, RESERVATIONS mechanism, task-hygiene toolchain decision, session manager rebuild/downscope, init-script robustness (`--read-only-bash`, sed escaping, registry side-effect, `--yes`).
+
+---
+
+## ADDENDUM — PHASE 2 EXECUTION RECORD (v3.6.0 — Mechanism Debt Payoff)
+
+**Executed:** 2026-06-11, on `mission/phase-2-mechanisms` (own vault, own Oracle — successor to PR #9). Three parallel operatives with disjoint file ownership; two were killed mid-mission by upstream API errors (529) and their remainders were completed by a relief operative and @consigliere. Identity files were untouched, per mission constraint.
+
+| Phase 2 Item | Finding | Mechanism Shipped | Verification |
+|---|---|---|---|
+| 8. Schema v2 + validation | H-3 | `routing.schema.json` 2.0.0 (backward-compatible: pi backend, openrouter provider, optional operative/consigliere agents, cli_profile/invocation_template/identity_injection, route_to extended); NEW `scripts/validate-shims.sh` (python3-jsonschema with jq fallback); pre-commit v2.2.0 **CHECK-6** runs it when staged changes touch `shims/*.json`; `pi` added to init `--shim` whitelist | 4/4 shims PASS full jsonschema validation; pre-existing shims unaffected |
+| 9. RESERVATIONS mechanism | M-1 | NEW `scripts/reserve.sh` — claim/release/status/sweep, path-conflict refusal (exit 2), 4-hour expiry, dead-PID sweep, atomic jq writes; init stamps `RESERVATIONS.json` into mission vaults; ORACLE §6.3 mandates the tool, prohibits manual JSON edits | full lifecycle test: disjoint claims OK, conflict refused, release/re-claim OK, dead-PID swept |
+| 10. Task-hygiene true-up | M-2 | `TASK_HYGIENE_SOP.md` v1.1 — phantom toolchain (`task-hygiene.py`, `task-graph.yaml`, ORACLE §7.1) removed; manual procedure aligned to the `project-map.json` task_queue that exists; future automation tracked as M-2. `CONTEXT_HYGIENE.md` positional §6.4 reference → named "Session Resource Budget" reference | zero residual phantom references (grep) |
+| 11. Session + init robustness | H-4, M-6 | `syndicate-session.sh` v2.1.0 honest downscope: pre-types CORRECT launch commands into tmux windows **without auto-executing** (operator confirms); fabricated `--system-file`/`--context` flags, dead CMD_LEAD code, and the local-scope bug all removed. `syndicate-init.sh`: fictional `--read-only-bash` injection deleted; sed-escaping of operator/project/mission input; deployment registry → gitignored `deployments.local.json` (hydration no longer dirties the core repo); `--yes` headless flag | `bash -n` + dry-run and REAL hydration smoke tests pass, incl. operator name "Smith & Jones / Acme" and untouched manifest |
+| 12. Evidence-bound traces (C-2 full fix) | C-2 | NEW `scripts/audit-trace.sh` — appends a hashed audit entry to AUDIT_LOG.md, emits 3-field trailer `@gavel <STATUS> — <ts> — <12-hex>`; commit-msg v2.1.0 verifies the hash against the branch audit log (anti-forgery), transitional policy: hashless legacy trailers warn but pass | generate→verify PASS; bogus hash FAIL exit 1; the Phase 2 commit itself carries the first evidence-bound trailer in repo history |
+| 13. Registry true-up | H-1 | manifest v3.6.0 (3.5.0 → superseded), scripts registry now 7 entries; README: scripts tree, `--shim pi`, `--yes`, "five specialized agent identities" intro fix | `jq` valid; active 3.6.0 |
+
+**C-2 status:** CLOSED (transitional). The trailer is now verifiable when hash-bound; full enforcement (rejecting hashless trailers) is a future flag-day once hydrated projects migrate.
+
+**Remaining open (Phase 3 candidates):** pi.shim model-ID refresh procedure (L-9), secrets-scan breadth / gitleaks delegation (M-5 residual), CHECK-4 multi-word pattern support (M-5), `.claude/settings.local.json` `git *` wildcard (L-6), `--dangerously-skip-permissions` default (L-7), hashless-trailer flag day.
