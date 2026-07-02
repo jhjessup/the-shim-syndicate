@@ -8,13 +8,16 @@
 # DESCRIPTION:
 #   Hydrates a new or existing project repository with The Shim Syndicate
 #   agent team. Creates a local .syndicate/ stub, links the Syndicate Core,
-#   generates a project-specific ORACLE.md, and initializes the AUDIT_LOG.md.
+#   generates a project-specific ORACLE.md and project-map.json, initializes
+#   the AUDIT_LOG.md, and wires the Gavel git hooks by pointing the repo's
+#   core.hooksPath at the Core's shared hooks directory.
 #
 #   With --mission: Operates in Mission Mode. Verifies the current branch is a
 #   mission/ branch, creates a branch-isolated vault at
 #   .syndicate/vault/<branch-name>/, generates a Mission Brief, copies the
-#   ORACLE.md and project-map.json templates into the vault, and installs the
-#   Gavel git hooks (pre-commit and commit-msg).
+#   ORACLE.md and project-map.json templates into the vault, and wires the
+#   Gavel git hooks (pre-commit and commit-msg) by setting core.hooksPath to
+#   the Core's hooks directory. Hook wiring runs in both modes.
 #
 # USAGE:
 #   cd /path/to/your-project
@@ -375,6 +378,32 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# Step 4.2: Generate project-map.json from template
+# -----------------------------------------------------------------------------
+log_section "Step 4.2: Generating project-map.json"
+
+MAP_TEMPLATE="$CORE_PATH/templates/project-map.json"
+MAP_DEST="$STUB_DIR/project-map.json"
+
+if [[ ! -f "$MAP_TEMPLATE" ]]; then
+  log_warn "project-map.json template not found at: $MAP_TEMPLATE — skipping."
+  log_warn "The Ledger will lack a project map until the template is present in Syndicate Core."
+else
+  if [[ "$DRY_RUN" == false ]]; then
+    sed \
+      -e "s/{{MISSION_NAME}}/$ESC_PROJECT/g" \
+      -e "s/{{MISSION_DATE}}/$HYDRATION_DATE/g" \
+      -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
+      -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
+      "$MAP_TEMPLATE" > "$MAP_DEST"
+    log_ok "Generated project-map.json → $MAP_DEST"
+    log_info "Ask The Ledger to populate structure, dependencies, and prior_decisions before launching agents."
+  else
+    dry_run_echo "sed [template substitution] '$MAP_TEMPLATE' → '$MAP_DEST'"
+  fi
+fi
+
+# -----------------------------------------------------------------------------
 # Step 5: Initialize AUDIT_LOG.md
 # -----------------------------------------------------------------------------
 log_section "Step 5: Initializing AUDIT_LOG.md"
@@ -418,6 +447,7 @@ if [[ "$DRY_RUN" == false ]]; then
   "paths": {
     "oracle": ".syndicate/ORACLE.md",
     "test_doctrine": ".syndicate/TEST_DOCTRINE.md",
+    "project_map": ".syndicate/project-map.json",
     "audit_log": ".syndicate/logs/AUDIT_LOG.md",
     "routing": ".syndicate/routing.json",
     "core": ".syndicate/core"
@@ -505,6 +535,23 @@ if [[ "$DRY_RUN" == false ]]; then
   fi
 else
   dry_run_echo "Append Syndicate block to $GITIGNORE"
+fi
+
+# -----------------------------------------------------------------------------
+# Step 8.5: Wire Gavel git hooks (core.hooksPath) — runs in BOTH modes
+# -----------------------------------------------------------------------------
+# Point the repo's core.hooksPath at the Core's shared hooks dir so the Gavel
+# pre-commit (branch guard) and commit-msg (audit-trace trailer) hooks are
+# active and cannot be skipped by downstream repos. This applies to both
+# project mode and mission mode (the mission block re-affirms it in Step 13).
+log_section "Step 8.5: Wiring Gavel Git Hooks (core.hooksPath)"
+
+if [[ ! -d "$CORE_PATH/hooks" ]]; then
+  log_warn "Core hooks directory not found at $CORE_PATH/hooks — commits will NOT be gated."
+else
+  exec_or_dry "git -C '$PROJECT_DIR' config core.hooksPath '$CORE_PATH/hooks'"
+  [[ "$DRY_RUN" == true ]] || log_ok "Wired git hooks → $CORE_PATH/hooks (core.hooksPath)"
+  log_info "core.hooksPath is local git config — re-run init or syndicate-adopt.sh after a fresh clone."
 fi
 
 # -----------------------------------------------------------------------------
@@ -676,39 +723,23 @@ if [[ "$MISSION_MODE" == true ]]; then
   fi
 
   # --------------------------------------------------------------------------
-  # Step 13: Install Gavel git hooks
+  # Step 13: Confirm Gavel git hooks are wired (core.hooksPath)
   # --------------------------------------------------------------------------
-  log_section "Step 13: Installing Gavel Git Hooks"
+  # Hooks are wired via core.hooksPath in the common flow (Step 8.5) so they
+  # apply in both project and mission mode, survive branch switches, and cannot
+  # be skipped. Re-affirm the wiring here and warn loudly if the Core hooks are
+  # missing.
+  log_section "Step 13: Confirming Gavel Git Hooks"
 
-  GIT_HOOKS_DIR="$PROJECT_DIR/.git/hooks"
-  HOOK_SOURCE_DIR="$CORE_PATH/hooks"
-
-  if [[ ! -d "$GIT_HOOKS_DIR" ]]; then
-    log_error ".git/hooks directory not found at $GIT_HOOKS_DIR"
-    log_error "Ensure this is a valid git repository."
-    exit 1
+  if [[ -f "$CORE_PATH/hooks/pre-commit" && -f "$CORE_PATH/hooks/commit-msg" ]]; then
+    exec_or_dry "git -C '$PROJECT_DIR' config core.hooksPath '$CORE_PATH/hooks'"
+    if [[ "$DRY_RUN" != true ]]; then
+      log_ok "Gavel hooks active via core.hooksPath → $CORE_PATH/hooks"
+      log_ok "All commits on this repo will now pass through The Gavel (pre-commit + commit-msg)."
+    fi
+  else
+    log_warn "Core hooks missing at $CORE_PATH/hooks (pre-commit/commit-msg) — commits will NOT be gated."
   fi
-
-  for hook in pre-commit commit-msg; do
-    HOOK_SRC="$HOOK_SOURCE_DIR/$hook"
-    HOOK_DEST="$GIT_HOOKS_DIR/$hook"
-
-    if [[ ! -f "$HOOK_SRC" ]]; then
-      log_warn "Hook source not found: $HOOK_SRC — skipping $hook"
-      continue
-    fi
-
-    if [[ -f "$HOOK_DEST" ]] && [[ "$DRY_RUN" == false ]]; then
-      log_warn "Existing $hook hook found at $HOOK_DEST — backing up to ${HOOK_DEST}.bak"
-      cp "$HOOK_DEST" "${HOOK_DEST}.bak"
-    fi
-
-    exec_or_dry "cp '$HOOK_SRC' '$HOOK_DEST'"
-    exec_or_dry "chmod +x '$HOOK_DEST'"
-    log_ok "Installed: $HOOK_DEST"
-  done
-
-  log_ok "Gavel hooks active. All commits on this repo will now pass through The Gavel."
 
 fi  # end MISSION_MODE
 
@@ -767,6 +798,10 @@ else
   echo -e "     Open ${BOLD}.syndicate/TEST_DOCTRINE.md${RESET} and fill in:"
   echo -e "     §2.2 PROJECT_COMPOSABILITY_AXIOMS, §3.1 COVERAGE_THRESHOLDS, §3.2 MANDATORY_TEST_MATRIX"
   echo -e "     The Gavel will FAIL commits with unfilled {{placeholder}} tokens."
+  echo ""
+  echo -e "  1c. ${CYAN}Give The Ledger the project-map.json:${RESET}"
+  echo -e "     Open ${BOLD}.syndicate/project-map.json${RESET} and ask The Ledger to populate"
+  echo -e "     structure, dependencies, and prior_decisions."
   echo ""
   echo -e "  2. ${CYAN}Start the session:${RESET}"
   echo -e "     ${BOLD}bash syndicate-session.sh attach${RESET}"
