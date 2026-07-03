@@ -24,12 +24,14 @@
 #   attach    Attach to the session, creating it first if absent (default)
 #   reload    Hot-reload mission context for the current branch (no session restart)
 #   status    Print session state, current branch, and loaded context paths
+#   doctor    Preflight the repo for Syndicate governance gaps (hooks, map, branch)
 #   kill      Terminate the active Syndicate session
 #
 # OPTIONS:
 #   --session <name>   tmux session name           (default: syndicate)
 #   --project <path>   Project root directory       (default: cwd)
 #   --env <file>       Path to .env file            (default: <project>/.env)
+#   --strict           (doctor) exit non-zero if any check fails (for CI)
 #   --dry-run          Preview actions without executing
 #   --help             Show this help message
 #
@@ -77,6 +79,7 @@ SESSION_NAME="${SYNDICATE_SESSION_NAME:-syndicate}"
 PROJECT_DIR="$(pwd)"
 ENV_FILE=""
 DRY_RUN=false
+STRICT=false
 
 # -----------------------------------------------------------------------------
 # Help
@@ -91,11 +94,12 @@ usage() {
 # -----------------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    start|attach|reload|status|kill)
+    start|attach|reload|status|doctor|kill)
       COMMAND="$1"; shift ;;
     --session)   SESSION_NAME="$2"; shift 2 ;;
     --project)   PROJECT_DIR="$2";  shift 2 ;;
     --env)       ENV_FILE="$2";     shift 2 ;;
+    --strict)    STRICT=true;       shift   ;;
     --dry-run)   DRY_RUN=true;      shift   ;;
     --help|-h)   usage ;;
     *) log_error "Unknown option: $1"; exit 1 ;;
@@ -282,6 +286,10 @@ BANNER
 create_session() {
   log_section "Creating Syndicate tmux Session: $SESSION_NAME"
 
+  # Governance preflight (warn-only): surface hook/map/branch drift each session
+  # so a repo that slipped through init/adopt is caught on next attach.
+  run_doctor || true
+
   if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     if [[ "$COMMAND" == "start" ]]; then
       log_error "Session '$SESSION_NAME' already exists. Use 'attach' or 'kill' first."
@@ -421,6 +429,71 @@ kill_session() {
 }
 
 # -----------------------------------------------------------------------------
+# Core: Doctor — preflight governance checks
+#
+# Verifies the repo is self-installing the Syndicate guards. Emits WARN lines
+# (non-fatal) by default; with --strict, any failed check makes the script
+# exit non-zero (for CI). Relies on globals set by detect_mission_context()
+# (CURRENT_BRANCH, MISSION_MAP) and STUB_DIR.
+# -----------------------------------------------------------------------------
+run_doctor() {
+  log_section "Syndicate Doctor — Governance Preflight"
+
+  local failures=0
+  local core_path="${SYNDICATE_CORE_PATH:-$STUB_DIR/core}"
+  local expected_hooks="$core_path/hooks"
+
+  # Canonicalize a path if realpath is available (hooksPath may point at the
+  # real Core while $STUB_DIR/core is a symlink to it).
+  _canon() { if command -v realpath &>/dev/null; then realpath -m "$1" 2>/dev/null || echo "$1"; else echo "$1"; fi; }
+
+  # --- CHECK 1: core.hooksPath is set AND resolves to the Core hooks dir ---
+  local hooks_path
+  hooks_path="$(git -C "$PROJECT_DIR" config --get core.hooksPath 2>/dev/null || echo "")"
+  if [[ -n "$hooks_path" && "$(_canon "$hooks_path")" == "$(_canon "$expected_hooks")" ]]; then
+    log_ok "Hooks wired: core.hooksPath → $hooks_path"
+  else
+    failures=$((failures + 1))
+    if [[ -z "$hooks_path" ]]; then
+      log_warn "core.hooksPath is NOT set — The Gavel hooks are inactive."
+    else
+      log_warn "core.hooksPath ($hooks_path) does not resolve to $expected_hooks."
+    fi
+    log_warn "  Fix: bash '$core_path/scripts/syndicate-adopt.sh' '$PROJECT_DIR'"
+  fi
+
+  # --- CHECK 2: project-map.json exists ---
+  if [[ -f "$MISSION_MAP" ]]; then
+    log_ok "project-map.json present: $MISSION_MAP"
+  else
+    failures=$((failures + 1))
+    log_warn "project-map.json missing at $MISSION_MAP."
+    log_warn "  Fix: run 'bash syndicate-init.sh' (project) or '--mission' (mission branch)."
+  fi
+
+  # --- CHECK 3: branch sovereignty — not on main/master ---
+  if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+    failures=$((failures + 1))
+    log_warn "On protected branch '$CURRENT_BRANCH' — commits will be BLOCKED by The Gavel."
+    log_warn "  Fix: work on a mission/ or feat/ branch (git checkout -b mission/<name>)."
+  else
+    log_ok "Branch sovereignty: '$CURRENT_BRANCH' (not main/master)."
+  fi
+
+  if [[ "$failures" -eq 0 ]]; then
+    log_ok "Doctor: all governance checks passed."
+  else
+    log_warn "Doctor: $failures check(s) failed."
+    if [[ "$STRICT" == true ]]; then
+      log_error "--strict set — failing the run."
+      exit 1
+    fi
+  fi
+
+  return 0
+}
+
+# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 log_section "Syndicate Session Manager v${SCRIPT_VERSION}"
@@ -434,6 +507,7 @@ case "$COMMAND" in
   attach)  create_session ;;
   reload)  reload_context ;;
   status)  print_status ;;
+  doctor)  run_doctor ;;
   kill)    kill_session ;;
   *)
     log_error "Unknown command: $COMMAND"
