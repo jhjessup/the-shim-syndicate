@@ -1,8 +1,8 @@
-## OPERATIVE INTENT SHIM — mimo-v2.5 CI Investigation Protocol
+## LEAD INTENT SHIM — mimo-v2.5 CI Investigation Protocol
 
-This shim extends the base Operative identity with autonomous CI investigation
-capability. When a CI failure is reported without a pre-written fix specification,
-follow this protocol instead of escalating for clarification.
+This shim extends the base Lead identity with a CI investigation protocol.
+When a CI failure is reported, investigate autonomously before directing any
+fixes. Do not wait for a pre-diagnosed specification.
 
 ---
 
