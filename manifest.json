@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The Shim Syndicate — Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "3.7.0",
+  "active_version": "3.8.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,9 +12,147 @@
   },
   "versions": [
     {
+      "version": "3.8.0",
+      "released": "2026-07-05",
+      "status": "active",
+      "description": "Branch Hygiene Script. Adds scripts/branch-hygiene.sh — a self-contained pi operative for investigating and remediating GitHub PR branch health. Derives the GitHub repo from git remote automatically; embeds a 7-step protocol with 6 failure classes; applies the operative.mimo.md intent shim to stay scope-locked. Accepts an optional CI_FACTS_FILE for project-local CI chain integration.",
+      "changelog": [
+        "Added scripts/branch-hygiene.sh — runs as a pi operative (opencode/mimo-v2.5-free). Takes PR_NUMBER and optional CI_FACTS_FILE. Derives repo from git remote. Embeds protocol with 7 steps: CI status check, no-CI diagnosis (stale commits / behind main / conflict), full local CI chain run, fix-all, verify-all, commit+push, report. Covers 6 failure classes: stale pre-merge commits, branch behind main, merge conflict (STOP+REPORT), CI violations, no runs+mergeable (empty trigger commit), unclassified (STOP+REPORT). Applies intent-shims/operative.mimo.md to suppress executor drift."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "3.2",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "3.1",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.1",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        },
+        "operative": {
+          "identity_version": "1.1",
+          "file": "identities/THE_OPERATIVE.md",
+          "default_model": "task-appropriate"
+        },
+        "consigliere": {
+          "identity_version": "1.0",
+          "file": "identities/THE_CONSIGLIERE.md",
+          "default_model": "claude-sonnet-4-6"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json",
+        "shims/pi.shim.json"
+      ],
+      "intent_shims": {
+        "description": "Model-specific behavioral-correction layers applied in addition to an agent's identity file when that agent runs on a cheap sub-model. Each shim narrows a known drift class so the lowest-cost-tier-capable doctrine can be honored in practice. Routed via the intent_shims maps in shims/pi.shim.json.",
+        "registry": [
+          {
+            "file": "intent-shims/lead.mimo.md",
+            "role": "lead",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "CI investigation drift — stopping at the first error and verifying only the tool just fixed; enforces full-log enumeration and full-chain re-verification. Project-agnostic protocol only (project commands live in a dispatch CI FACTS block)."
+          },
+          {
+            "file": "intent-shims/operative.mimo.md",
+            "role": "operative",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "Executor drift, six classes: uncommitted in-flight work, silent scope creep, claimed-but-unverified success, improvisation on failure, doc-over-fact trust, suppression-comment laundering. Framed for mimo's optimistic over-helpfulness."
+          },
+          {
+            "file": "intent-shims/operative.deepseek.md",
+            "role": "operative",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Same six executor drift classes as operative.mimo, framed for deepseek's confident improvisation on unmatched failures and its trust in well-written documentation over the dispatch FACTS block."
+          },
+          {
+            "file": "intent-shims/gavel.mimo.md",
+            "role": "gavel (T3-SCAN first pass)",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "Mechanical audit drift: lenient PARTIAL verdicts, location-blind grading, missing field-level/cross-reference/phantom/version checks. Constrained to emit CANDIDATE findings only — no final severity, no verdict, no Audit-Trace."
+          },
+          {
+            "file": "intent-shims/gavel.deepseek.md",
+            "role": "gavel (T3-SCAN first pass)",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Same mechanical scan drift as gavel.mimo, plus motion-easing scan coverage and rgba over-counting precision. Constrained to CANDIDATE findings only — no verdict, no Audit-Trace."
+          },
+          {
+            "file": "intent-shims/gavel-judgment.md",
+            "role": "gavel (Judgment second pass)",
+            "target_model": "claude (model-agnostic, Claude-targeted)",
+            "corrects": "Rubber-stamping candidate lists. Preserves Gavel independence: adjudicates T3-SCAN candidates, performs absence and cross-file reasoning the scan cannot, and is the sole issuer of final severity, verdict, and Audit-Trace."
+          },
+          {
+            "file": "intent-shims/digest.deepseek.md",
+            "role": "digest (T1 pre-digest)",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Raw-log pre-digest drift: stopping at first error, paraphrasing error text, summarising instead of enumerating, and diagnosing/recommending. Emits a verbatim structured JSON violation list so Claude Lead never reads raw logs."
+          }
+        ]
+      },
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/commit-msg"
+      ],
+      "sops_available": [
+        "sops/CONTEXT_HYGIENE.md",
+        "sops/TASK_HYGIENE_SOP.md",
+        "sops/OPERATIVE_LAUNCH_PROTOCOL.md"
+      ],
+      "templates_available": [
+        "templates/ORACLE.md",
+        "templates/AUDIT_LOG.md",
+        "templates/MISSION_BRIEF.md",
+        "templates/project-map.json",
+        "templates/TEST_DOCTRINE.md",
+        "templates/RESERVATIONS.json",
+        "templates/UX_AUDIT_PROMPT.md"
+      ],
+      "scripts_available": [
+        "scripts/syndicate-init.sh",
+        "scripts/syndicate-session.sh",
+        "scripts/launch-operative.sh",
+        "scripts/update_usage.py",
+        "scripts/reserve.sh",
+        "scripts/audit-trace.sh",
+        "scripts/validate-shims.sh",
+        "scripts/branch-hygiene.sh"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode",
+          "pi"
+        ]
+      },
+      "integrity": {
+        "released_by": "The Consigliere — Branch Hygiene Script"
+      }
+    },
+    {
       "version": "3.7.0",
       "released": "2026-06-11",
-      "status": "active",
+      "status": "superseded",
       "description": "Gate Hardening II. Phase 3 of the Consigliere remediation: closes the residual findings parked in the review addendum — secrets-scan breadth with gitleaks delegation, multi-word prohibited-pattern support, an opt-in strict mode for evidence-bound trailers (the C-2 flag-day migration path), pi-shim model verification annotations, and removal of the permission-bypass default. No identity files modified.",
       "changelog": [
         "hooks/pre-commit v2.3.0 CHECK-3: delegates to gitleaks (protect --staged) when installed, with graceful regex fallback; .env-file guard now runs in every mode; fallback pattern set broadened (OpenAI sk-, Slack xox, generic Bearer, Google OAuth refresh, JWT) — all patterns verified non-self-matching so the hooks can scan themselves.",
