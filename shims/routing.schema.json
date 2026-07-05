@@ -76,6 +76,14 @@
           "description": "Relative path to the agent's identity Markdown file.",
           "pattern": "^identities/[A-Z_]+\\.md$"
         },
+        "intent_shims": {
+          "type": "object",
+          "description": "Maps a 'provider/model' key to the relative path of a model-specific intent shim that corrects that model's behavioral drift for this agent role. Applied in addition to the identity file when the agent runs on the matching backend model.",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^intent-shims/[A-Za-z0-9._-]+\\.md$"
+          }
+        },
         "primary_backend": {
           "type": "string",
           "enum": ["claude", "gemini", "local", "pi"],
