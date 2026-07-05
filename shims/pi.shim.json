@@ -62,6 +62,9 @@
   "agents": {
     "lead": {
       "identity_file": "identities/THE_LEAD.md",
+      "intent_shims": {
+        "opencode/mimo-v2.5-free": "intent-shims/lead.mimo.md"
+      },
       "primary_backend": "pi",
       "secondary_backend": "claude",
       "backend_config": {
@@ -102,11 +105,15 @@
     },
     "operative": {
       "identity_file": "identities/THE_OPERATIVE.md",
+      "intent_shims": {
+        "opencode/deepseek-v4-flash-free": "intent-shims/operative.deepseek.md",
+        "opencode/mimo-v2.5-free": "intent-shims/operative.mimo.md"
+      },
       "primary_backend": "pi",
       "secondary_backend": "claude",
       "backend_config": {
         "provider": "opencode",
-        "model": "qwen-2.5-72b",
+        "model": "nemotron-3-ultra-free",
         "model_constraints": {
           "min_context_tokens": 4096,
           "max_output_tokens": 8192,
@@ -182,6 +189,10 @@
     },
     "gavel": {
       "identity_file": "identities/THE_GAVEL.md",
+      "intent_shims": {
+        "opencode/deepseek-v4-flash-free": "intent-shims/gavel.deepseek.md",
+        "opencode/mimo-v2.5-free": "intent-shims/gavel.mimo.md"
+      },
       "primary_backend": "pi",
       "secondary_backend": "local",
       "backend_config": {
