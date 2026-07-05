@@ -36,22 +36,15 @@ ALL violations before writing a single fix.
 #### STEP 3 — Run the full local CI chain
 
 Before fixing anything, reproduce the failures locally. Run every tool the CI
-workflow runs, in order:
+workflow runs, in order.
 
-**Backend (from `/root/concierge-hub/backend`):**
-```bash
-ruff check app/
-mypy app/ --ignore-missing-imports
-bandit -r app/ --exit-zero
-python3 ../scripts/validate_architecture.py
-python3 ../scripts/check-deps-sync.py
-```
-
-**Frontend (from `/root/concierge-hub/frontend`):**
-```bash
-npm run lint
-npm run type-check
-```
+The exact tool list, working directories, and commands are **project-specific**
+and live in the dispatch **CI FACTS block** (for concierge-hub, that is
+`docs/ops/ci-facts.md`; every project supplies its own). Do not hardcode a
+tool chain here or infer it from memory — read the FACTS block and run exactly
+the commands it lists, in the order it lists them, from the working directories
+it names. The FACTS block is ground truth; if project documentation elsewhere
+describes a different chain, the FACTS block wins.
 
 Capture ALL non-zero exit codes. This is your complete fix list.
 
@@ -92,11 +85,7 @@ after it.
 
 ---
 
-### PROJECT-SPECIFIC CI COMMANDS (concierge-hub)
-
-Working directory context:
-- Backend checks run from: `/root/concierge-hub/backend`
-- Frontend checks run from: `/root/concierge-hub/frontend`
-- Architecture validator: `python3 ../scripts/validate_architecture.py`
-- Deps sync gate: `python3 ../scripts/check-deps-sync.py`
-- GitHub CLI available: `gh pr checks`, `gh run view`
+*This is the generic, project-agnostic CI investigation protocol. Project-local
+CI commands (tool chain, working directories, validators) belong in that
+project's dispatch CI FACTS block — e.g. `docs/ops/ci-facts.md` — not in this
+shim.*
