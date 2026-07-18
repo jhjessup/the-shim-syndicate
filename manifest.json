@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "The Shim Syndicate — Master Registry",
+  "title": "The Shim Syndicate \u2014 Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "3.8.0",
+  "active_version": "3.8.1",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,12 +12,15 @@
   },
   "versions": [
     {
-      "version": "3.8.0",
-      "released": "2026-07-05",
+      "version": "3.8.1",
+      "released": "2026-07-18",
       "status": "active",
-      "description": "Branch Hygiene Script. Adds scripts/branch-hygiene.sh — a self-contained pi operative for investigating and remediating GitHub PR branch health. Derives the GitHub repo from git remote automatically; embeds a 7-step protocol with 6 failure classes; applies the operative.mimo.md intent shim to stay scope-locked. Accepts an optional CI_FACTS_FILE for project-local CI chain integration.",
+      "description": "Merge-Commit Gate Fix. Adds hooks/pre-merge-commit \u2014 closes a gap where merge commits into any branch (including main/master) silently bypassed every Gavel pre-commit check (branch guard, secrets scan, prohibited patterns, test doctrine, shim schema). Discovered empirically in a downstream project: a git merge into master produced zero Gavel output while a direct git commit was correctly blocked. CHECK-1 (branch guard) is merge-context-aware so the sanctioned mission-branch-merge workflow is not blocked by the fix that closes the gap.",
       "changelog": [
-        "Added scripts/branch-hygiene.sh — runs as a pi operative (opencode/mimo-v2.5-free). Takes PR_NUMBER and optional CI_FACTS_FILE. Derives repo from git remote. Embeds protocol with 7 steps: CI status check, no-CI diagnosis (stale commits / behind main / conflict), full local CI chain run, fix-all, verify-all, commit+push, report. Covers 6 failure classes: stale pre-merge commits, branch behind main, merge conflict (STOP+REPORT), CI violations, no runs+mergeable (empty trigger commit), unclassified (STOP+REPORT). Applies intent-shims/operative.mimo.md to suppress executor drift."
+        "Added hooks/pre-merge-commit \u2014 Git invokes this hook (not pre-commit) for merge commits; without it, no Gavel check ran on any merge. New hook sets SYNDICATE_MERGE_CONTEXT=1 and delegates to hooks/pre-commit, so secrets scan, prohibited-pattern guard, test doctrine, and shim schema validation now all run on merge commits, matching the guarantee the docs already claimed for 'every commit'.",
+        "hooks/pre-commit v2.4.0 CHECK-1: merge-context-aware. A merge landing on main/master (SYNDICATE_MERGE_CONTEXT=1) is no longer treated as a direct-commit violation \u2014 merging a mission/ branch into main/master is the sanctioned path per MISSION_BRIEF.md merge criteria. Instead verifies the incoming branch is a mission/ branch and PASSes; a non-mission or unidentifiable source WARNs (does not block) \u2014 an unidentifiable source must never be able to block the sanctioned workflow.",
+        "hooks/pre-commit CHECK-1: source-branch identification uses SYNDICATE_MERGE_SOURCE (caller-set) as the authoritative signal, with a best-effort `git name-rev --name-only MERGE_HEAD` fallback. Empirically, .git/MERGE_HEAD is NOT reliably present when pre-merge-commit fires for a clean (non-conflicting) merge under git 2.43 / the `ort` strategy \u2014 verified by direct .git/ inspection at hook-fire time (only AUTO_MERGE and ORIG_HEAD were present). Relying solely on git plumbing here would have silently degraded to always-WARN on the exact git version/path this fix targets.",
+        "Dogfooded against downstream project mcp-gateway (regression check: direct commit to master still blocked; mission-branch merge with SYNDICATE_MERGE_SOURCE set now shows a real Gavel PASS/CHECK-1 pass; non-mission-branch merge source correctly WARNs, does not block). All test branches/commits reverted after verification \u2014 no residue left in mcp-gateway."
       ],
       "agents": {
         "lead": {
@@ -59,7 +62,7 @@
             "file": "intent-shims/lead.mimo.md",
             "role": "lead",
             "target_model": "opencode/mimo-v2.5-free",
-            "corrects": "CI investigation drift — stopping at the first error and verifying only the tool just fixed; enforces full-log enumeration and full-chain re-verification. Project-agnostic protocol only (project commands live in a dispatch CI FACTS block)."
+            "corrects": "CI investigation drift \u2014 stopping at the first error and verifying only the tool just fixed; enforces full-log enumeration and full-chain re-verification. Project-agnostic protocol only (project commands live in a dispatch CI FACTS block)."
           },
           {
             "file": "intent-shims/operative.mimo.md",
@@ -77,13 +80,152 @@
             "file": "intent-shims/gavel.mimo.md",
             "role": "gavel (T3-SCAN first pass)",
             "target_model": "opencode/mimo-v2.5-free",
-            "corrects": "Mechanical audit drift: lenient PARTIAL verdicts, location-blind grading, missing field-level/cross-reference/phantom/version checks. Constrained to emit CANDIDATE findings only — no final severity, no verdict, no Audit-Trace."
+            "corrects": "Mechanical audit drift: lenient PARTIAL verdicts, location-blind grading, missing field-level/cross-reference/phantom/version checks. Constrained to emit CANDIDATE findings only \u2014 no final severity, no verdict, no Audit-Trace."
           },
           {
             "file": "intent-shims/gavel.deepseek.md",
             "role": "gavel (T3-SCAN first pass)",
             "target_model": "opencode/deepseek-v4-flash-free",
-            "corrects": "Same mechanical scan drift as gavel.mimo, plus motion-easing scan coverage and rgba over-counting precision. Constrained to CANDIDATE findings only — no verdict, no Audit-Trace."
+            "corrects": "Same mechanical scan drift as gavel.mimo, plus motion-easing scan coverage and rgba over-counting precision. Constrained to CANDIDATE findings only \u2014 no verdict, no Audit-Trace."
+          },
+          {
+            "file": "intent-shims/gavel-judgment.md",
+            "role": "gavel (Judgment second pass)",
+            "target_model": "claude (model-agnostic, Claude-targeted)",
+            "corrects": "Rubber-stamping candidate lists. Preserves Gavel independence: adjudicates T3-SCAN candidates, performs absence and cross-file reasoning the scan cannot, and is the sole issuer of final severity, verdict, and Audit-Trace."
+          },
+          {
+            "file": "intent-shims/digest.deepseek.md",
+            "role": "digest (T1 pre-digest)",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Raw-log pre-digest drift: stopping at first error, paraphrasing error text, summarising instead of enumerating, and diagnosing/recommending. Emits a verbatim structured JSON violation list so Claude Lead never reads raw logs."
+          }
+        ]
+      },
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/pre-merge-commit",
+        "hooks/commit-msg"
+      ],
+      "sops_available": [
+        "sops/CONTEXT_HYGIENE.md",
+        "sops/TASK_HYGIENE_SOP.md",
+        "sops/OPERATIVE_LAUNCH_PROTOCOL.md"
+      ],
+      "templates_available": [
+        "templates/ORACLE.md",
+        "templates/AUDIT_LOG.md",
+        "templates/MISSION_BRIEF.md",
+        "templates/project-map.json",
+        "templates/TEST_DOCTRINE.md",
+        "templates/RESERVATIONS.json",
+        "templates/UX_AUDIT_PROMPT.md"
+      ],
+      "scripts_available": [
+        "scripts/syndicate-init.sh",
+        "scripts/syndicate-session.sh",
+        "scripts/launch-operative.sh",
+        "scripts/update_usage.py",
+        "scripts/reserve.sh",
+        "scripts/audit-trace.sh",
+        "scripts/validate-shims.sh",
+        "scripts/branch-hygiene.sh"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode",
+          "pi"
+        ]
+      },
+      "integrity": {
+        "released_by": "The Consigliere \u2014 Merge-Commit Gate Fix"
+      }
+    },
+    {
+      "version": "3.8.0",
+      "released": "2026-07-05",
+      "status": "superseded",
+      "description": "Branch Hygiene Script. Adds scripts/branch-hygiene.sh \u2014 a self-contained pi operative for investigating and remediating GitHub PR branch health. Derives the GitHub repo from git remote automatically; embeds a 7-step protocol with 6 failure classes; applies the operative.mimo.md intent shim to stay scope-locked. Accepts an optional CI_FACTS_FILE for project-local CI chain integration.",
+      "changelog": [
+        "Added scripts/branch-hygiene.sh \u2014 runs as a pi operative (opencode/mimo-v2.5-free). Takes PR_NUMBER and optional CI_FACTS_FILE. Derives repo from git remote. Embeds protocol with 7 steps: CI status check, no-CI diagnosis (stale commits / behind main / conflict), full local CI chain run, fix-all, verify-all, commit+push, report. Covers 6 failure classes: stale pre-merge commits, branch behind main, merge conflict (STOP+REPORT), CI violations, no runs+mergeable (empty trigger commit), unclassified (STOP+REPORT). Applies intent-shims/operative.mimo.md to suppress executor drift."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "3.2",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "3.1",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.1",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        },
+        "operative": {
+          "identity_version": "1.1",
+          "file": "identities/THE_OPERATIVE.md",
+          "default_model": "task-appropriate"
+        },
+        "consigliere": {
+          "identity_version": "1.0",
+          "file": "identities/THE_CONSIGLIERE.md",
+          "default_model": "claude-sonnet-4-6"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json",
+        "shims/pi.shim.json"
+      ],
+      "intent_shims": {
+        "description": "Model-specific behavioral-correction layers applied in addition to an agent's identity file when that agent runs on a cheap sub-model. Each shim narrows a known drift class so the lowest-cost-tier-capable doctrine can be honored in practice. Routed via the intent_shims maps in shims/pi.shim.json.",
+        "registry": [
+          {
+            "file": "intent-shims/lead.mimo.md",
+            "role": "lead",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "CI investigation drift \u2014 stopping at the first error and verifying only the tool just fixed; enforces full-log enumeration and full-chain re-verification. Project-agnostic protocol only (project commands live in a dispatch CI FACTS block)."
+          },
+          {
+            "file": "intent-shims/operative.mimo.md",
+            "role": "operative",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "Executor drift, six classes: uncommitted in-flight work, silent scope creep, claimed-but-unverified success, improvisation on failure, doc-over-fact trust, suppression-comment laundering. Framed for mimo's optimistic over-helpfulness."
+          },
+          {
+            "file": "intent-shims/operative.deepseek.md",
+            "role": "operative",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Same six executor drift classes as operative.mimo, framed for deepseek's confident improvisation on unmatched failures and its trust in well-written documentation over the dispatch FACTS block."
+          },
+          {
+            "file": "intent-shims/gavel.mimo.md",
+            "role": "gavel (T3-SCAN first pass)",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "Mechanical audit drift: lenient PARTIAL verdicts, location-blind grading, missing field-level/cross-reference/phantom/version checks. Constrained to emit CANDIDATE findings only \u2014 no final severity, no verdict, no Audit-Trace."
+          },
+          {
+            "file": "intent-shims/gavel.deepseek.md",
+            "role": "gavel (T3-SCAN first pass)",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Same mechanical scan drift as gavel.mimo, plus motion-easing scan coverage and rgba over-counting precision. Constrained to CANDIDATE findings only \u2014 no verdict, no Audit-Trace."
           },
           {
             "file": "intent-shims/gavel-judgment.md",
@@ -146,21 +288,21 @@
         ]
       },
       "integrity": {
-        "released_by": "The Consigliere — Branch Hygiene Script"
+        "released_by": "The Consigliere \u2014 Branch Hygiene Script"
       }
     },
     {
       "version": "3.7.0",
       "released": "2026-06-11",
       "status": "superseded",
-      "description": "Gate Hardening II. Phase 3 of the Consigliere remediation: closes the residual findings parked in the review addendum — secrets-scan breadth with gitleaks delegation, multi-word prohibited-pattern support, an opt-in strict mode for evidence-bound trailers (the C-2 flag-day migration path), pi-shim model verification annotations, and removal of the permission-bypass default. No identity files modified.",
+      "description": "Gate Hardening II. Phase 3 of the Consigliere remediation: closes the residual findings parked in the review addendum \u2014 secrets-scan breadth with gitleaks delegation, multi-word prohibited-pattern support, an opt-in strict mode for evidence-bound trailers (the C-2 flag-day migration path), pi-shim model verification annotations, and removal of the permission-bypass default. No identity files modified.",
       "changelog": [
-        "hooks/pre-commit v2.3.0 CHECK-3: delegates to gitleaks (protect --staged) when installed, with graceful regex fallback; .env-file guard now runs in every mode; fallback pattern set broadened (OpenAI sk-, Slack xox, generic Bearer, Google OAuth refresh, JWT) — all patterns verified non-self-matching so the hooks can scan themselves.",
+        "hooks/pre-commit v2.3.0 CHECK-3: delegates to gitleaks (protect --staged) when installed, with graceful regex fallback; .env-file guard now runs in every mode; fallback pattern set broadened (OpenAI sk-, Slack xox, generic Bearer, Google OAuth refresh, JWT) \u2014 all patterns verified non-self-matching so the hooks can scan themselves.",
         "hooks/pre-commit v2.3.0 CHECK-4: prohibited patterns containing spaces are no longer truncated (awk print-third-field bug); per-check verdict no longer suppressed by failures in earlier checks.",
-        "hooks/commit-msg v2.2.0: SYNDICATE_REQUIRE_TRACE_HASH=1 opt-in strict mode — hashless legacy trailers become hard failures; default remains warn-and-accept. Migration path toward the evidence-bound flag day.",
-        "shims/pi.shim.json: models_verified_on dates, verification notes, and a model_refresh_procedure added to cli_profile — model-slug rot is now visible and has a documented refresh path (L-9).",
+        "hooks/commit-msg v2.2.0: SYNDICATE_REQUIRE_TRACE_HASH=1 opt-in strict mode \u2014 hashless legacy trailers become hard failures; default remains warn-and-accept. Migration path toward the evidence-bound flag day.",
+        "shims/pi.shim.json: models_verified_on dates, verification notes, and a model_refresh_procedure added to cli_profile \u2014 model-slug rot is now visible and has a documented refresh path (L-9).",
         "shims/claude.shim.json: --dangerously-skip-permissions removed from the default Lead cli_flags; security-posture comment documents the project-local opt-in path (L-7).",
-        "Core-repo .claude permission posture: git wildcard replaced with an explicit verb allowlist; destructive git operations now prompt (L-6, machine-local — gitignored)."
+        "Core-repo .claude permission posture: git wildcard replaced with an explicit verb allowlist; destructive git operations now prompt (L-6, machine-local \u2014 gitignored)."
       ],
       "agents": {
         "lead": {
@@ -202,7 +344,7 @@
             "file": "intent-shims/lead.mimo.md",
             "role": "lead",
             "target_model": "opencode/mimo-v2.5-free",
-            "corrects": "CI investigation drift — stopping at the first error and verifying only the tool just fixed; enforces full-log enumeration and full-chain re-verification. Project-agnostic protocol only (project commands live in a dispatch CI FACTS block)."
+            "corrects": "CI investigation drift \u2014 stopping at the first error and verifying only the tool just fixed; enforces full-log enumeration and full-chain re-verification. Project-agnostic protocol only (project commands live in a dispatch CI FACTS block)."
           },
           {
             "file": "intent-shims/operative.mimo.md",
@@ -220,13 +362,13 @@
             "file": "intent-shims/gavel.mimo.md",
             "role": "gavel (T3-SCAN first pass)",
             "target_model": "opencode/mimo-v2.5-free",
-            "corrects": "Mechanical audit drift: lenient PARTIAL verdicts, location-blind grading, missing field-level/cross-reference/phantom/version checks. Constrained to emit CANDIDATE findings only — no final severity, no verdict, no Audit-Trace."
+            "corrects": "Mechanical audit drift: lenient PARTIAL verdicts, location-blind grading, missing field-level/cross-reference/phantom/version checks. Constrained to emit CANDIDATE findings only \u2014 no final severity, no verdict, no Audit-Trace."
           },
           {
             "file": "intent-shims/gavel.deepseek.md",
             "role": "gavel (T3-SCAN first pass)",
             "target_model": "opencode/deepseek-v4-flash-free",
-            "corrects": "Same mechanical scan drift as gavel.mimo, plus motion-easing scan coverage and rgba over-counting precision. Constrained to CANDIDATE findings only — no verdict, no Audit-Trace."
+            "corrects": "Same mechanical scan drift as gavel.mimo, plus motion-easing scan coverage and rgba over-counting precision. Constrained to CANDIDATE findings only \u2014 no verdict, no Audit-Trace."
           },
           {
             "file": "intent-shims/gavel-judgment.md",
@@ -288,23 +430,23 @@
         ]
       },
       "integrity": {
-        "released_by": "The Consigliere — Gate Hardening II"
+        "released_by": "The Consigliere \u2014 Gate Hardening II"
       }
     },
     {
       "version": "3.6.0",
       "released": "2026-06-11",
       "status": "superseded",
-      "description": "Mechanism Debt Payoff. Phase 2 of the Consigliere remediation (CONSIGLIERE_REVIEW_2026-06-10.md): converts documented-but-unimplemented behaviors into working, tested mechanisms — schema v2 with shim validation, the RESERVATIONS concurrency tool, evidence-bound audit traces, hydration-script robustness, and an honest session-manager downscope. No identity files were modified.",
+      "description": "Mechanism Debt Payoff. Phase 2 of the Consigliere remediation (CONSIGLIERE_REVIEW_2026-06-10.md): converts documented-but-unimplemented behaviors into working, tested mechanisms \u2014 schema v2 with shim validation, the RESERVATIONS concurrency tool, evidence-bound audit traces, hydration-script robustness, and an honest session-manager downscope. No identity files were modified.",
       "changelog": [
         "Schema v2 (routing.schema.json 2.0.0, backward-compatible): pi backend, openrouter provider, optional operative/consigliere agent keys, cli_profile/invocation_template/identity_injection properties, route_to extended. All four shims now validate.",
-        "Added scripts/validate-shims.sh — python3-jsonschema validator with jq structural fallback; wired into pre-commit v2.2.0 as CHECK-6 (runs when staged changes touch shims/*.json).",
-        "Added scripts/reserve.sh — working RESERVATIONS mechanism (claim/release/status/sweep, 4-hour expiry, dead-PID sweep, atomic jq writes); syndicate-init.sh stamps RESERVATIONS.json into mission vaults; ORACLE template §6.3 now mandates the tool over manual JSON edits.",
-        "Added scripts/audit-trace.sh — evidence-bound audit traces: appends a hashed audit entry to AUDIT_LOG.md and emits a 3-field trailer; commit-msg hook v2.1.0 verifies trailer hashes against the branch audit log (transitional: hashless legacy trailers warn but pass).",
+        "Added scripts/validate-shims.sh \u2014 python3-jsonschema validator with jq structural fallback; wired into pre-commit v2.2.0 as CHECK-6 (runs when staged changes touch shims/*.json).",
+        "Added scripts/reserve.sh \u2014 working RESERVATIONS mechanism (claim/release/status/sweep, 4-hour expiry, dead-PID sweep, atomic jq writes); syndicate-init.sh stamps RESERVATIONS.json into mission vaults; ORACLE template \u00a76.3 now mandates the tool over manual JSON edits.",
+        "Added scripts/audit-trace.sh \u2014 evidence-bound audit traces: appends a hashed audit entry to AUDIT_LOG.md and emits a 3-field trailer; commit-msg hook v2.1.0 verifies trailer hashes against the branch audit log (transitional: hashless legacy trailers warn but pass).",
         "syndicate-init.sh hardened: pi shim deployable via --shim; removed nonexistent --read-only-bash injection that broke Gavel invocation; sed-escaping of operator/project/mission input; deployment registry moved from manifest.json to gitignored deployments.local.json (hydration no longer dirties the core repo); --yes/-y headless flag.",
         "syndicate-session.sh v2.1.0 honest downscope: pre-types correct launch commands into tmux windows without auto-executing (operator confirms with Enter); removed fabricated --system-file/--context flags, dead CMD_LEAD code, and the variable-scope bug that left identity paths empty.",
-        "sops/TASK_HYGIENE_SOP.md v1.1: phantom toolchain references (task-hygiene.py, task-graph.yaml, ORACLE §7.1) removed; manual procedure aligned to the project-map.json task_queue that actually exists; future automation tracked as finding M-2.",
-        "sops/CONTEXT_HYGIENE.md: positional ORACLE §6.4 reference replaced with named Session Resource Budget reference."
+        "sops/TASK_HYGIENE_SOP.md v1.1: phantom toolchain references (task-hygiene.py, task-graph.yaml, ORACLE \u00a77.1) removed; manual procedure aligned to the project-map.json task_queue that actually exists; future automation tracked as finding M-2.",
+        "sops/CONTEXT_HYGIENE.md: positional ORACLE \u00a76.4 reference replaced with named Session Resource Budget reference."
       ],
       "agents": {
         "lead": {
@@ -385,7 +527,7 @@
         ]
       },
       "integrity": {
-        "released_by": "The Consigliere — Mechanism Debt Payoff"
+        "released_by": "The Consigliere \u2014 Mechanism Debt Payoff"
       }
     },
     {
@@ -394,11 +536,11 @@
       "status": "superseded",
       "description": "Governance True-Up & Launch Protocol Consolidation. Registers all unversioned changes since v3.4.0, remediates the Phase 0 and Phase 1 findings of the 2026-06-10 Consigliere review (CONSIGLIERE_REVIEW_2026-06-10.md), consolidates the triplicated Operative Launch Protocol into a single SOP, removes orphaned files, and corrects the manifest registry itself.",
       "changelog": [
-        "Registered previously unversioned changes from commit 4a49554: PHASE: PRODUCT DESIGN in THE_LEAD.md, §IX Frontend Hygiene Audit in THE_GAVEL.md, templates/UX_AUDIT_PROMPT.md, ORACLE.md §4.5–4.7 and §6.4.",
+        "Registered previously unversioned changes from commit 4a49554: PHASE: PRODUCT DESIGN in THE_LEAD.md, \u00a7IX Frontend Hygiene Audit in THE_GAVEL.md, templates/UX_AUDIT_PROMPT.md, ORACLE.md \u00a74.5\u20134.7 and \u00a76.4.",
         "Phase 0 remediation: pre-commit placeholder detection broadened to all {{...}} tokens; commit-msg hook no longer accepts @gavel FAIL trailers; THE_LEAD.md model binding corrected to Claude Sonnet 4.6+; THE_LEDGER.md Refusal Condition 7 (No Task Absorption); Syndicate hooks installed in the core repo (self-application).",
-        "hooks/pre-commit: fixed CHECK-3 secrets scan — patterns beginning with a dash (private key header) were parsed by grep as options and silently skipped; patterns are now passed with -e.",
-        "Added sops/OPERATIVE_LAUNCH_PROTOCOL.md v1.0 — single canonical launch protocol (tier selection, tier-to-model mapping, governor behavior, dispatch syntax). Removed the three duplicated protocol blocks from Lead, Ledger, and Gavel; resolved Gavel's direct-invocation contradiction — all launches route through scripts/launch-operative.sh.",
-        "Identity version bumps: THE_LEAD.md 3.1→3.2, THE_LEDGER.md 3.0→3.1, THE_GAVEL.md 2.0→2.1 (duplicate §X numbering fixed), THE_OPERATIVE.md header corrected 1.0→1.1.",
+        "hooks/pre-commit: fixed CHECK-3 secrets scan \u2014 patterns beginning with a dash (private key header) were parsed by grep as options and silently skipped; patterns are now passed with -e.",
+        "Added sops/OPERATIVE_LAUNCH_PROTOCOL.md v1.0 \u2014 single canonical launch protocol (tier selection, tier-to-model mapping, governor behavior, dispatch syntax). Removed the three duplicated protocol blocks from Lead, Ledger, and Gavel; resolved Gavel's direct-invocation contradiction \u2014 all launches route through scripts/launch-operative.sh.",
+        "Identity version bumps: THE_LEAD.md 3.1\u21923.2, THE_LEDGER.md 3.0\u21923.1, THE_GAVEL.md 2.0\u21922.1 (duplicate \u00a7X numbering fixed), THE_OPERATIVE.md header corrected 1.0\u21921.1.",
         "manifest.json: canonical_branch corrected to main; superseded version entries collapsed to changelog-only; unimplemented sha256_manifest integrity field removed.",
         "Removed orphaned files: shims/gavel_audit.py (crashed on first run, dead quota logic), identities/THE_LEDGER.json (referenced by nothing).",
         "Registered previously untracked assets: sops/TASK_HYGIENE_SOP.md, templates/UX_AUDIT_PROMPT.md, templates/RESERVATIONS.json, and a scripts registry.",
@@ -480,31 +622,31 @@
         ]
       },
       "integrity": {
-        "released_by": "The Consigliere — Governance True-Up"
+        "released_by": "The Consigliere \u2014 Governance True-Up"
       }
     },
     {
       "version": "3.4.0",
       "released": "2026-04-12",
       "status": "superseded",
-      "description": "Agent Safety & Concurrency Control. Introduces templates/RESERVATIONS.json and §6.3 Agent Safety Rules to ORACLE.md. Formalizes the @consigliere identity for strategic analysis and anti-pattern detection. Implements a mission-scoped task reservation registry to prevent resource collisions in multi-agent environments.",
+      "description": "Agent Safety & Concurrency Control. Introduces templates/RESERVATIONS.json and \u00a76.3 Agent Safety Rules to ORACLE.md. Formalizes the @consigliere identity for strategic analysis and anti-pattern detection. Implements a mission-scoped task reservation registry to prevent resource collisions in multi-agent environments.",
       "changelog": [
-        "Added templates/RESERVATIONS.json v1.0 — Dynamic task reservation registry to track active agent locks and resources.",
-        "Updated templates/ORACLE.md — Added §6.3 Agent Safety & Concurrency Rules (v1.0) defining the reservation protocol, mutation guards, and task expiry rules.",
-        "Formalized identities/THE_CONSIGLIERE.md v1.0 — Strategic Advisor identity for pattern analysis and Syndicate governance.",
-        "Updated manifest.json — Promoted to v3.4.0 with comprehensive agent safety integration."
+        "Added templates/RESERVATIONS.json v1.0 \u2014 Dynamic task reservation registry to track active agent locks and resources.",
+        "Updated templates/ORACLE.md \u2014 Added \u00a76.3 Agent Safety & Concurrency Rules (v1.0) defining the reservation protocol, mutation guards, and task expiry rules.",
+        "Formalized identities/THE_CONSIGLIERE.md v1.0 \u2014 Strategic Advisor identity for pattern analysis and Syndicate governance.",
+        "Updated manifest.json \u2014 Promoted to v3.4.0 with comprehensive agent safety integration."
       ]
     },
     {
       "version": "3.3.0",
       "released": "2026-04-09",
       "status": "superseded",
-      "description": "Test Doctrine Integration. Introduces templates/TEST_DOCTRINE.md as a two-tier testing specification system. Universal philosophy in the core template; project-specific instantiation in .syndicate/TEST_DOCTRINE.md at hydration time. Extends syndicate-init.sh to stamp the template, updates the pre-commit hook to enforce doctrine integrity, and wires ORACLE.md §4 to reference the doctrine file.",
+      "description": "Test Doctrine Integration. Introduces templates/TEST_DOCTRINE.md as a two-tier testing specification system. Universal philosophy in the core template; project-specific instantiation in .syndicate/TEST_DOCTRINE.md at hydration time. Extends syndicate-init.sh to stamp the template, updates the pre-commit hook to enforce doctrine integrity, and wires ORACLE.md \u00a74 to reference the doctrine file.",
       "changelog": [
-        "Added templates/TEST_DOCTRINE.md v1.0 — Universal test taxonomy (Unit/Service/Endpoint/Integration), five composability axioms (AX-1 through AX-5), Gavel audit criteria for test quality, test organization standards, and placeholder sections for project-specific instantiation.",
-        "Updated scripts/syndicate-init.sh v2.1 — Added Step 4.1: stamps TEST_DOCTRINE.md from template into .syndicate/ at project hydration time, substituting PROJECT_NAME, SYNDICATE_VERSION, HYDRATION_DATE, and OPERATOR_NAME. Updated Step 6 to include test_doctrine path in config.json. Updated mission mode (Step 12) to also stamp TEST_DOCTRINE.md into mission vault.",
-        "Updated hooks/pre-commit v2.1 — Added CHECK-5: Test Doctrine Integrity. Verifies .syndicate/TEST_DOCTRINE.md exists (WARN if absent) and contains no unfilled {{placeholder}} tokens (FAIL if present). Updated check count from 4 to 5.",
-        "Updated templates/ORACLE.md — Added §4.4 Testing Doctrine with TEST_DOCTRINE path reference and description of the Doctrine's role relative to coverage thresholds."
+        "Added templates/TEST_DOCTRINE.md v1.0 \u2014 Universal test taxonomy (Unit/Service/Endpoint/Integration), five composability axioms (AX-1 through AX-5), Gavel audit criteria for test quality, test organization standards, and placeholder sections for project-specific instantiation.",
+        "Updated scripts/syndicate-init.sh v2.1 \u2014 Added Step 4.1: stamps TEST_DOCTRINE.md from template into .syndicate/ at project hydration time, substituting PROJECT_NAME, SYNDICATE_VERSION, HYDRATION_DATE, and OPERATOR_NAME. Updated Step 6 to include test_doctrine path in config.json. Updated mission mode (Step 12) to also stamp TEST_DOCTRINE.md into mission vault.",
+        "Updated hooks/pre-commit v2.1 \u2014 Added CHECK-5: Test Doctrine Integrity. Verifies .syndicate/TEST_DOCTRINE.md exists (WARN if absent) and contains no unfilled {{placeholder}} tokens (FAIL if present). Updated check count from 4 to 5.",
+        "Updated templates/ORACLE.md \u2014 Added \u00a74.4 Testing Doctrine with TEST_DOCTRINE path reference and description of the Doctrine's role relative to coverage thresholds."
       ]
     },
     {
@@ -513,14 +655,14 @@
       "status": "superseded",
       "description": "Efficiency Tier Integration. Adds Phase 0 Confidence Gate, Surgical Scope, and Tool Minimalism (Silent Drip) to @lead and @operative. Formalizes sub-agent model routing in the Delegation Matrix. Introduces sops/CONTEXT_HYGIENE.md as an operator SOP for session lifecycle management. Adds Session Resource Budget to ORACLE.md template.",
       "changelog": [
-        "Updated THE_LEAD.md v3.1 — Added Phase 0: Confidence Gate with explicit trigger conditions and interrogation protocol before any execution phase.",
-        "Updated THE_LEAD.md v3.1 — Added Operational Philosophy §5 Surgical Scope: targeted file reads, no undirected directory scanning.",
-        "Updated THE_LEAD.md v3.1 — Added Operational Philosophy §6 Tool Minimalism (Silent Drip): CLI-first, MCP tools only for capabilities unavailable via CLI.",
-        "Updated THE_LEAD.md v3.1 — Expanded Delegation Matrix with explicit Operative Model Binding table: task type to model binding (Haiku/Flash for research, Sonnet/Pro for implementation, local for audit, nested sub-agent for 3+ file surveys).",
-        "Updated THE_OPERATIVE.md v1.1 — Added Surgical Scope and Tool Minimalism to Operational Philosophy. Sub-agents return actionable delta only — no raw content.",
-        "Created sops/CONTEXT_HYGIENE.md v1.0 — Operator SOP for session lifecycle: Snapshot & Compact procedure, 5-minute cache boundary recovery, Session Handoff Block format, anti-pattern register. CLI-specific commands (/compact, /context, /cost, /clear) correctly scoped to operator SOP rather than agent identity files.",
-        "Updated templates/ORACLE.md — Added §6.4 Session Resource Budget with configurable thresholds for context hygiene trigger, operative delegation threshold, synthesis format, and sub-agent model bindings.",
-        "Eliminated 'High Consigliere v5.0' ghost identity from operator-submitted tier proposal — no such identity exists in the Syndicate. Confidence gate wired to @lead, not a phantom role."
+        "Updated THE_LEAD.md v3.1 \u2014 Added Phase 0: Confidence Gate with explicit trigger conditions and interrogation protocol before any execution phase.",
+        "Updated THE_LEAD.md v3.1 \u2014 Added Operational Philosophy \u00a75 Surgical Scope: targeted file reads, no undirected directory scanning.",
+        "Updated THE_LEAD.md v3.1 \u2014 Added Operational Philosophy \u00a76 Tool Minimalism (Silent Drip): CLI-first, MCP tools only for capabilities unavailable via CLI.",
+        "Updated THE_LEAD.md v3.1 \u2014 Expanded Delegation Matrix with explicit Operative Model Binding table: task type to model binding (Haiku/Flash for research, Sonnet/Pro for implementation, local for audit, nested sub-agent for 3+ file surveys).",
+        "Updated THE_OPERATIVE.md v1.1 \u2014 Added Surgical Scope and Tool Minimalism to Operational Philosophy. Sub-agents return actionable delta only \u2014 no raw content.",
+        "Created sops/CONTEXT_HYGIENE.md v1.0 \u2014 Operator SOP for session lifecycle: Snapshot & Compact procedure, 5-minute cache boundary recovery, Session Handoff Block format, anti-pattern register. CLI-specific commands (/compact, /context, /cost, /clear) correctly scoped to operator SOP rather than agent identity files.",
+        "Updated templates/ORACLE.md \u2014 Added \u00a76.4 Session Resource Budget with configurable thresholds for context hygiene trigger, operative delegation threshold, synthesis format, and sub-agent model bindings.",
+        "Eliminated 'High Consigliere v5.0' ghost identity from operator-submitted tier proposal \u2014 no such identity exists in the Syndicate. Confidence gate wired to @lead, not a phantom role."
       ]
     },
     {
@@ -529,11 +671,11 @@
       "status": "superseded",
       "description": "Operative Tier & Task Queue Integration. Introduces The Operative agent (bounded execution tier), formalizes dispatch package protocol, integrates task queue into project-map.json, and clarifies orchestrator/executor hierarchy.",
       "changelog": [
-        "Added THE_OPERATIVE.md v1.0 — New fourth agent identity for bounded task execution with dispatch package contract.",
-        "Updated THE_LEAD.md v3.0 — Added Operative to delegation matrix, refined SDLC phases to include DISPATCH phase.",
-        "Updated THE_LEDGER.md v3.0 — Refined task queue protocol to generate dispatch packages for @operative instances, embedded task tracking in project-map.json.",
-        "Updated project-map.json template — Added task_queue section with task status tracking, dispatch package embedding, and operative assignment.",
-        "Updated README.md — Added Operative to agent team table, clarified orchestrator/executor architecture, updated directory structure.",
+        "Added THE_OPERATIVE.md v1.0 \u2014 New fourth agent identity for bounded task execution with dispatch package contract.",
+        "Updated THE_LEAD.md v3.0 \u2014 Added Operative to delegation matrix, refined SDLC phases to include DISPATCH phase.",
+        "Updated THE_LEDGER.md v3.0 \u2014 Refined task queue protocol to generate dispatch packages for @operative instances, embedded task tracking in project-map.json.",
+        "Updated project-map.json template \u2014 Added task_queue section with task status tracking, dispatch package embedding, and operative assignment.",
+        "Updated README.md \u2014 Added Operative to agent team table, clarified orchestrator/executor architecture, updated directory structure.",
         "Clarified agent hierarchy: Orchestrators (Lead, Ledger) govern strategy and planning; Gavel and Operative enforce quality and execute work.",
         "Formalized dispatch package spec with required fields: task_definition, context, specification, audit_criteria."
       ]
@@ -544,15 +686,15 @@
       "status": "superseded",
       "description": "Branch-Based Mission Architecture. Adds mission-scoped vault isolation, syndicate-session.sh tmux manager with branch detection, Gavel pre-commit and commit-msg hooks, Mission Brief and project-map.json templates, and headless-first identity updates for all three agents.",
       "changelog": [
-        "Added syndicate-session.sh — tmux session manager with git branch detection and auto-loading of mission ORACLE.md and project-map.json.",
-        "Added Mission Mode to syndicate-init.sh (--mission flag) — verifies mission/ branch, creates .syndicate/vault/<branch-name>/, generates Mission Brief.",
-        "Added hooks/pre-commit — Gavel branch guard, Oracle integrity check, secrets scan, Oracle prohibited pattern guard.",
-        "Added hooks/commit-msg — enforces Syndicate-Audit-Trace trailer on all mission/ branch commits.",
-        "Added templates/MISSION_BRIEF.md — operator-completed mission context template.",
-        "Added templates/project-map.json — Ledger's branch-specific Gemini context map template.",
-        "Updated THE_LEAD.md v2.0 — Branch Integrity (refuse main commits, require Syndicate-Audit-Trace).",
-        "Updated THE_LEDGER.md v2.0 — Context Switch Protocol (detect branch change, swap project-map.json, announce context load).",
-        "Updated THE_GAVEL.md v2.0 — Pre-Commit Hook Mode, AUDIT_TRACE trailer output, headless/CLI-only operation.",
+        "Added syndicate-session.sh \u2014 tmux session manager with git branch detection and auto-loading of mission ORACLE.md and project-map.json.",
+        "Added Mission Mode to syndicate-init.sh (--mission flag) \u2014 verifies mission/ branch, creates .syndicate/vault/<branch-name>/, generates Mission Brief.",
+        "Added hooks/pre-commit \u2014 Gavel branch guard, Oracle integrity check, secrets scan, Oracle prohibited pattern guard.",
+        "Added hooks/commit-msg \u2014 enforces Syndicate-Audit-Trace trailer on all mission/ branch commits.",
+        "Added templates/MISSION_BRIEF.md \u2014 operator-completed mission context template.",
+        "Added templates/project-map.json \u2014 Ledger's branch-specific Gemini context map template.",
+        "Updated THE_LEAD.md v2.0 \u2014 Branch Integrity (refuse main commits, require Syndicate-Audit-Trace).",
+        "Updated THE_LEDGER.md v2.0 \u2014 Context Switch Protocol (detect branch change, swap project-map.json, announce context load).",
+        "Updated THE_GAVEL.md v2.0 \u2014 Pre-Commit Hook Mode, AUDIT_TRACE trailer output, headless/CLI-only operation.",
         "All shims and identities updated for headless environment: API keys from $ANTHROPIC_API_KEY / $GOOGLE_API_KEY only."
       ]
     },
@@ -562,17 +704,17 @@
       "status": "deprecated",
       "description": "Initial master core release. Establishes the three agent identities (Lead, Ledger, Gavel), shim routing layer, hydration script, and audit log template.",
       "changelog": [
-        "Defined THE_LEAD identity — Principal Architect authority.",
-        "Defined THE_LEDGER identity — Context Librarian and institutional memory.",
-        "Defined THE_GAVEL identity — Independent audit authority with OWASP-aligned checklist.",
-        "Created routing.schema.json — validated shim configuration schema.",
-        "Created claude.shim.json — Claude-primary routing configuration.",
-        "Created gemini.shim.json — Gemini-primary routing configuration.",
-        "Created local.shim.json — Air-gapped local-model routing configuration.",
-        "Created syndicate-init.sh — Project hydration script.",
-        "Created ORACLE.md template — Project-specific override system.",
-        "Created AUDIT_LOG.md template — Permanent decision and audit trail.",
-        "Created README.md — Deployment and operational documentation."
+        "Defined THE_LEAD identity \u2014 Principal Architect authority.",
+        "Defined THE_LEDGER identity \u2014 Context Librarian and institutional memory.",
+        "Defined THE_GAVEL identity \u2014 Independent audit authority with OWASP-aligned checklist.",
+        "Created routing.schema.json \u2014 validated shim configuration schema.",
+        "Created claude.shim.json \u2014 Claude-primary routing configuration.",
+        "Created gemini.shim.json \u2014 Gemini-primary routing configuration.",
+        "Created local.shim.json \u2014 Air-gapped local-model routing configuration.",
+        "Created syndicate-init.sh \u2014 Project hydration script.",
+        "Created ORACLE.md template \u2014 Project-specific override system.",
+        "Created AUDIT_LOG.md template \u2014 Permanent decision and audit trail.",
+        "Created README.md \u2014 Deployment and operational documentation."
       ]
     }
   ],
