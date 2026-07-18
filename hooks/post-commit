@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# =============================================================================
+# post-commit — Auto-Sync Central Governance After Every Commit
+# =============================================================================
+# Version: 1.0.0
+# Repository: jhjessup/the-shim-syndicate
+#
+# DESCRIPTION:
+#   Fires after every `git commit` in any repository where this hook is
+#   installed (via core.hooksPath). Delegates to scripts/sync-governance.sh,
+#   which — for projects using centralized governance (.syndicate is a
+#   symlink; see syndicate-init.sh --governance central) — commits (and by
+#   default pushes) any pending changes in the central governance repo,
+#   referencing this commit. For colocated-governance projects, or projects
+#   with no governance at all, this is a silent no-op.
+#
+#   This exists so governance is captured regardless of which repo it's
+#   attached to (the central store) — a mission-branch commit in a
+#   downstream project no longer requires a separate manual commit+push step
+#   in the central repo to avoid losing that context.
+#
+#   Does NOT fire for merge commits created via `git merge` — see
+#   hooks/post-merge for that case (git dispatches these as two distinct
+#   hooks; a commit created by `git commit` after a git merge --no-ff would
+#   fire this one too, but a plain non-conflicted `git merge --no-ff` does
+#   not invoke post-commit at all).
+#
+# EXIT CODES:
+#   Always 0. post-commit hooks cannot block anything (the commit already
+#   happened by the time this fires) — Git ignores this hook's exit code —
+#   but sync-governance.sh is independently designed to never fail loudly
+#   regardless.
+# =============================================================================
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SYNC_SCRIPT="$HOOK_DIR/../scripts/sync-governance.sh"
+
+if [[ -f "$SYNC_SCRIPT" ]]; then
+  SYNDICATE_GOVERNANCE_SYNC_QUIET="${SYNDICATE_GOVERNANCE_SYNC_QUIET:-1}" \
+    bash "$SYNC_SCRIPT" "$(pwd)" || true
+fi
+
+exit 0

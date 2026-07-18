@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# =============================================================================
+# post-merge — Auto-Sync Central Governance After Every Merge
+# =============================================================================
+# Version: 1.0.0
+# Repository: jhjessup/the-shim-syndicate
+#
+# DESCRIPTION:
+#   Fires after every successful `git merge` (including `git pull` that
+#   results in a merge, and fast-forward merges) in any repository where
+#   this hook is installed. Git does NOT invoke post-commit for merges —
+#   this is the merge-specific counterpart, needed to reliably catch the
+#   single most important governance-capturing moment: a mission branch
+#   landing on main/master (see hooks/pre-merge-commit for the gate that
+#   runs BEFORE this, deciding whether the merge is allowed at all).
+#
+#   Delegates to scripts/sync-governance.sh — see hooks/post-commit for full
+#   behavior documentation (both hooks call the identical sync logic).
+#
+# ARGUMENTS (passed by Git):
+#   $1 — 1 if this was a squash merge, 0 otherwise. Not used here; governance
+#        sync behavior is identical either way.
+#
+# EXIT CODES:
+#   Always 0. Git does not gate on post-merge's exit code, but this is
+#   consistent with post-commit's never-block guarantee regardless.
+# =============================================================================
+set -uo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SYNC_SCRIPT="$HOOK_DIR/../scripts/sync-governance.sh"
+
+if [[ -f "$SYNC_SCRIPT" ]]; then
+  SYNDICATE_GOVERNANCE_SYNC_QUIET="${SYNDICATE_GOVERNANCE_SYNC_QUIET:-1}" \
+    bash "$SYNC_SCRIPT" "$(pwd)" || true
+fi
+
+exit 0

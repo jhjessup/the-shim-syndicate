@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The Shim Syndicate \u2014 Master Registry",
   "description": "Canonical version registry for The Shim Syndicate. This file tracks which version of the Syndicate is active and provides a complete audit trail of version history. Every project hydrated from this core records this version at hydration time.",
-  "active_version": "3.8.1",
+  "active_version": "3.9.0",
   "syndicate": {
     "name": "The Shim Syndicate",
     "handle": "@syndicate",
@@ -12,9 +12,152 @@
   },
   "versions": [
     {
-      "version": "3.8.1",
+      "version": "3.9.0",
       "released": "2026-07-18",
       "status": "active",
+      "description": "Centralized Governance by Default. syndicate-init.sh gains --governance central|colocated (default: central for fresh hydrations, auto-detected from an existing .syndicate symlink/directory otherwise). Adds hooks/post-commit and hooks/post-merge + scripts/sync-governance.sh so governance changes are captured and pushed to the central syndicate-projects repo automatically, regardless of which downstream repo they're attached to \u2014 no manual commit/push step required. Adds scripts/syndicate-migrate-governance.sh to formalize co-located-to-central migration (previously a manual, ad-hoc procedure).",
+      "changelog": [
+        "scripts/syndicate-init.sh v2.2.0: new --governance {central|colocated} flag and SYNDICATE_PROJECTS_PATH env var. Auto-detects mode from an existing .syndicate path when the flag is omitted (symlink -> central, reusing its exact target rather than recomputing one; real directory -> colocated; neither -> central, the new default for fresh hydrations). Refuses to silently clobber an existing setup if the explicit flag conflicts with it. Central mode creates governance at $SYNDICATE_PROJECTS_PATH/<project>/, symlinks .syndicate to it, updates .gitignore to a full ignore, registers the project in the central repo's README Projects table, and commits directly in the central repo (both at project hydration and at mission-vault creation, since those moments have no downstream-repo commit yet to hang a sync hook off).",
+        "hooks/post-commit and hooks/post-merge (new) + scripts/sync-governance.sh (new): after every commit or merge in a downstream project using centralized governance, automatically commits (and by default pushes) any pending changes in the central governance repo, scoped to that project's own subdirectory plus README.md \u2014 never a blind git add -A that could sweep in another project's unrelated in-progress work. Designed to never fail loudly: every error path (no network, push rejected, central repo dirty with conflicts) logs a warning and exits 0, so a governance-sync problem can never block the developer's actual commit/merge. SYNDICATE_GOVERNANCE_NO_PUSH=1 opts out of the auto-push, committing locally only.",
+        "hooks/pre-commit v2.5.0: CHECK-1 now also treats a commit as merge-context when .git/MERGE_HEAD is present (not just SYNDICATE_MERGE_CONTEXT=1) \u2014 fixes a real gap found in testing: when pre-merge-commit blocks a merge (e.g. on a CHECK-2/5 failure) and the operator retries via plain `git commit` to complete it, that retry was being misidentified as a fresh direct commit to main/master and incorrectly blocked.",
+        "scripts/syndicate-migrate-governance.sh (new): formalizes the co-located-to-central migration procedure (previously performed by hand for the mcp-gateway project) \u2014 SHA-256 hash-verified zero-data-loss move, symlink creation, .gitignore block replacement (actively replaces stale colocated-style ignore content rather than skipping if any Syndicate block is already present), idempotent central README registration, and a scoped commit in the central repo. --dry-run is genuinely non-mutating.",
+        "All new/changed pieces tested against real scratch fixtures, not just static review: init.sh central mode (fresh hydration + mission mode + auto-detection with a deliberately mismatched SYNDICATE_PROJECTS_PATH, which caught and fixed a real bug where registration would target the wrong central repo), the post-commit/post-merge hooks (real commits and a real blocked-merge-then-retry scenario, which caught and fixed the pre-commit MERGE_HEAD gap above), and the migration script (which caught and fixed a real stale-comment-residue bug in its .gitignore replacement logic)."
+      ],
+      "agents": {
+        "lead": {
+          "identity_version": "3.2",
+          "file": "identities/THE_LEAD.md",
+          "default_model": "claude-sonnet-4-6"
+        },
+        "ledger": {
+          "identity_version": "3.1",
+          "file": "identities/THE_LEDGER.md",
+          "default_model": "gemini-2.5-pro"
+        },
+        "gavel": {
+          "identity_version": "2.1",
+          "file": "identities/THE_GAVEL.md",
+          "default_model": "qwen2.5-coder:32b"
+        },
+        "operative": {
+          "identity_version": "1.1",
+          "file": "identities/THE_OPERATIVE.md",
+          "default_model": "task-appropriate"
+        },
+        "consigliere": {
+          "identity_version": "1.0",
+          "file": "identities/THE_CONSIGLIERE.md",
+          "default_model": "claude-sonnet-4-6"
+        }
+      },
+      "shims_available": [
+        "shims/claude.shim.json",
+        "shims/gemini.shim.json",
+        "shims/local.shim.json",
+        "shims/pi.shim.json"
+      ],
+      "intent_shims": {
+        "description": "Model-specific behavioral-correction layers applied in addition to an agent's identity file when that agent runs on a cheap sub-model. Each shim narrows a known drift class so the lowest-cost-tier-capable doctrine can be honored in practice. Routed via the intent_shims maps in shims/pi.shim.json.",
+        "registry": [
+          {
+            "file": "intent-shims/lead.mimo.md",
+            "role": "lead",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "CI investigation drift \u2014 stopping at the first error and verifying only the tool just fixed; enforces full-log enumeration and full-chain re-verification. Project-agnostic protocol only (project commands live in a dispatch CI FACTS block)."
+          },
+          {
+            "file": "intent-shims/operative.mimo.md",
+            "role": "operative",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "Executor drift, six classes: uncommitted in-flight work, silent scope creep, claimed-but-unverified success, improvisation on failure, doc-over-fact trust, suppression-comment laundering. Framed for mimo's optimistic over-helpfulness."
+          },
+          {
+            "file": "intent-shims/operative.deepseek.md",
+            "role": "operative",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Same six executor drift classes as operative.mimo, framed for deepseek's confident improvisation on unmatched failures and its trust in well-written documentation over the dispatch FACTS block."
+          },
+          {
+            "file": "intent-shims/gavel.mimo.md",
+            "role": "gavel (T3-SCAN first pass)",
+            "target_model": "opencode/mimo-v2.5-free",
+            "corrects": "Mechanical audit drift: lenient PARTIAL verdicts, location-blind grading, missing field-level/cross-reference/phantom/version checks. Constrained to emit CANDIDATE findings only \u2014 no final severity, no verdict, no Audit-Trace."
+          },
+          {
+            "file": "intent-shims/gavel.deepseek.md",
+            "role": "gavel (T3-SCAN first pass)",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Same mechanical scan drift as gavel.mimo, plus motion-easing scan coverage and rgba over-counting precision. Constrained to CANDIDATE findings only \u2014 no verdict, no Audit-Trace."
+          },
+          {
+            "file": "intent-shims/gavel-judgment.md",
+            "role": "gavel (Judgment second pass)",
+            "target_model": "claude (model-agnostic, Claude-targeted)",
+            "corrects": "Rubber-stamping candidate lists. Preserves Gavel independence: adjudicates T3-SCAN candidates, performs absence and cross-file reasoning the scan cannot, and is the sole issuer of final severity, verdict, and Audit-Trace."
+          },
+          {
+            "file": "intent-shims/digest.deepseek.md",
+            "role": "digest (T1 pre-digest)",
+            "target_model": "opencode/deepseek-v4-flash-free",
+            "corrects": "Raw-log pre-digest drift: stopping at first error, paraphrasing error text, summarising instead of enumerating, and diagnosing/recommending. Emits a verbatim structured JSON violation list so Claude Lead never reads raw logs."
+          }
+        ]
+      },
+      "hooks_available": [
+        "hooks/pre-commit",
+        "hooks/pre-merge-commit",
+        "hooks/commit-msg"
+      ],
+      "sops_available": [
+        "sops/CONTEXT_HYGIENE.md",
+        "sops/TASK_HYGIENE_SOP.md",
+        "sops/OPERATIVE_LAUNCH_PROTOCOL.md"
+      ],
+      "templates_available": [
+        "templates/ORACLE.md",
+        "templates/AUDIT_LOG.md",
+        "templates/MISSION_BRIEF.md",
+        "templates/project-map.json",
+        "templates/TEST_DOCTRINE.md",
+        "templates/RESERVATIONS.json",
+        "templates/UX_AUDIT_PROMPT.md"
+      ],
+      "scripts_available": [
+        "scripts/syndicate-init.sh",
+        "scripts/syndicate-session.sh",
+        "scripts/launch-operative.sh",
+        "scripts/update_usage.py",
+        "scripts/reserve.sh",
+        "scripts/audit-trace.sh",
+        "scripts/validate-shims.sh",
+        "scripts/branch-hygiene.sh"
+      ],
+      "compatibility": {
+        "min_claude_version": "claude-sonnet-4-6",
+        "min_gemini_version": "gemini-2.5-pro",
+        "min_local_model": "qwen2.5-coder:32b",
+        "required_cli_tools": [
+          "git",
+          "jq",
+          "tmux",
+          "bash"
+        ],
+        "optional_cli_tools": [
+          "claude",
+          "gemini",
+          "ollama",
+          "opencode",
+          "pi"
+        ]
+      },
+      "integrity": {
+        "released_by": "The Lead \u2014 Centralized Governance by Default (dispatched scripts/syndicate-migrate-governance.sh to a pi/nemotron Operative; wrote syndicate-init.sh, the sync hooks, and the pre-commit merge-completion fix directly given the data-integrity/auto-push risk profile)"
+      }
+    },
+    {
+      "version": "3.8.1",
+      "released": "2026-07-18",
+      "status": "superseded",
       "description": "Merge-Commit Gate Fix. Adds hooks/pre-merge-commit \u2014 closes a gap where merge commits into any branch (including main/master) silently bypassed every Gavel pre-commit check (branch guard, secrets scan, prohibited patterns, test doctrine, shim schema). Discovered empirically in a downstream project: a git merge into master produced zero Gavel output while a direct git commit was correctly blocked. CHECK-1 (branch guard) is merge-context-aware so the sanctioned mission-branch-merge workflow is not blocked by the fix that closes the gap.",
       "changelog": [
         "Added hooks/pre-merge-commit \u2014 Git invokes this hook (not pre-commit) for merge commits; without it, no Gavel check ran on any merge. New hook sets SYNDICATE_MERGE_CONTEXT=1 and delegates to hooks/pre-commit, so secrets scan, prohibited-pattern guard, test doctrine, and shim schema validation now all run on merge commits, matching the guarantee the docs already claimed for 'every commit'.",

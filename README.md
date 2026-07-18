@@ -46,8 +46,11 @@ the-shim-syndicate/
 │   └── pi.shim.json                   # Pi-primary routing configuration
 │
 ├── hooks/
-│   ├── pre-commit                     # Branch guard, Oracle integrity, and secrets gate
-│   └── commit-msg                     # Syndicate-Audit-Trace trailer gate
+│   ├── pre-commit                     # Branch guard, Oracle integrity, secrets gate, test doctrine, shim schema
+│   ├── pre-merge-commit               # Same gate for merge commits (git dispatches these separately from pre-commit)
+│   ├── commit-msg                     # Syndicate-Audit-Trace trailer gate
+│   ├── post-commit                    # Auto-syncs central governance after every commit
+│   └── post-merge                     # Auto-syncs central governance after every merge
 │
 ├── templates/
 │   ├── ORACLE.md                      # Project override template (filled in per project)
@@ -64,12 +67,16 @@ the-shim-syndicate/
 │   └── OPERATIVE_LAUNCH_PROTOCOL.md   # Canonical operative launch protocol (tiers, models, dispatch)
 │
 └── scripts/
-    ├── syndicate-init.sh              # Project hydration script
+    ├── syndicate-init.sh              # Project hydration script (--governance central|colocated)
+    ├── syndicate-migrate-governance.sh # Migrate an existing colocated project to central governance
+    ├── syndicate-adopt.sh             # Wire Gavel hooks into an already-existing repo
+    ├── sync-governance.sh             # Central-governance sync logic (called by post-commit/post-merge)
     ├── syndicate-session.sh           # tmux session manager with branch detection
     ├── launch-operative.sh            # Operative launcher (tier routing + capacity governor)
     ├── update_usage.py                # Claude capacity usage tracker
     ├── reserve.sh                     # Task reservation registry (claim/release/status/sweep)
     ├── audit-trace.sh                 # Evidence-bound audit trailers (generate/verify)
+    ├── branch-hygiene.sh              # GitHub PR branch health investigation/remediation
     └── validate-shims.sh              # Shim schema validator (pre-commit CHECK-6)
 ```
 
@@ -115,18 +122,26 @@ bash ~/syndicate/scripts/syndicate-init.sh \
 | `--operator` | string | `git config user.name` | Your name for audit records |
 | `--project` | string | current directory name | Project identifier |
 | `--shim` | `claude`, `gemini`, `local`, `pi` | `claude` | Which routing config to activate |
+| `--governance` | `central`, `colocated` | `central` (fresh hydration); auto-detected otherwise | Where governance data lives — see below |
 | `--yes` | — | false | Skip interactive confirmations (headless use) |
 | `--mode` | `symlink`, `subtree` | `symlink` | How to link the Core to the project |
 | `--dry-run` | — | false | Preview all actions without executing |
 
-**Mode selection guide:**
+**Mode selection guide (`--mode`, links the shared Core framework):**
 
 - `symlink` — The `.syndicate/core` directory is a symlink to your local Syndicate Core. Fast, space-efficient. Requires the Core path to remain stable. Best for personal machines.
 - `subtree` — The Syndicate Core is embedded into the project repo via `git subtree`. Fully portable. Best for team environments, CI/CD, or when you want the project to be self-contained.
 
+**Governance mode guide (`--governance`, where project-specific data lives):**
+
+- `central` (**recommended, the default for fresh hydrations**) — `ORACLE.md`, `TEST_DOCTRINE.md`, `routing.json`, `config.json`, and every mission's `vault/` live in an external repo (`$SYNDICATE_PROJECTS_PATH`, default `~/syndicate-projects` — must already exist as a git repo; this script does not create one for you). The project root gets a `.syndicate` symlink pointing there, and `.gitignore` excludes `.syndicate` entirely — your project's own code repo never carries governance data. `hooks/post-commit` and `hooks/post-merge` automatically commit (and by default push) any pending governance changes to the central repo after every downstream commit/merge — no manual sync step required. This is the pattern used by every actively-maintained project in this framework.
+- `colocated` — the original pattern: `.syndicate/` is a real, git-tracked directory committed directly inside your project's own repo. Still fully supported for standalone projects that don't want an external governance store, but you own capturing and backing it up yourself.
+- If `--governance` is omitted, the script **auto-detects** from any existing `.syndicate` path (a symlink → central, reusing its exact target; a real directory → colocated) so re-running `syndicate-init.sh --mission` on an already-hydrated project never needs the flag repeated.
+- **Migrating an existing colocated project to central:** `bash ~/syndicate/scripts/syndicate-migrate-governance.sh /path/to/project` — hash-verifies zero data loss, moves the data, creates the symlink, and updates `.gitignore` for you.
+
 ### Step 4: Complete the Oracle
 
-The hydration script generates `.syndicate/ORACLE.md` from a template. **This file must be completed before any agent can operate.** Open it and fill in all `{{placeholder}}` values:
+The hydration script generates `ORACLE.md` from a template (at `.syndicate/ORACLE.md`, whether that's a real file or — in central mode — a symlinked path into the central repo). **This file must be completed before any agent can operate.** Open it and fill in all `{{placeholder}}` values:
 
 ```bash
 $EDITOR .syndicate/ORACLE.md
@@ -141,14 +156,24 @@ The Oracle defines:
 
 The Lead will refuse to operate without a complete Oracle.
 
-### Step 5: Commit the Syndicate Stub
+### Step 5: Commit
+
+**Central mode (default):** the hydration script already committed the new project's governance directly in the central repo (`$SYNDICATE_PROJECTS_PATH`) as part of Step 3. You only need to commit `.gitignore` in your project's own repo:
+
+```bash
+git commit -m "chore: hydrate Shim Syndicate v${SYNDICATE_VERSION} (central governance)"
+```
+
+From then on, `hooks/post-commit`/`hooks/post-merge` keep the central repo in sync automatically on every future commit/merge — no further manual governance-commit step, ever.
+
+**Colocated mode:**
 
 ```bash
 git add .syndicate/
 git commit -m "chore: hydrate Shim Syndicate v1.0.0"
 ```
 
-The `.syndicate/` directory is a project asset. It is committed to the project repository so that all team members and CI/CD pipelines have access to the Oracle, routing config, and audit log.
+The `.syndicate/` directory is a project asset, committed to the project repository so that all team members and CI/CD pipelines have access to the Oracle, routing config, and audit log.
 
 ---
 
@@ -247,7 +272,7 @@ The `manifest.json` `deployment_registry` records every project that has been hy
 
 - **The Gavel runs locally by default.** Security audits never cross a network boundary unless the operator explicitly selects a cloud-backed shim.
 - **No secrets are stored in this repository.** API keys are always referenced by environment variable name, never by value.
-- **The `.syndicate/` directory is committed to the project repo.** This is intentional — the Oracle, routing config, and audit log are project assets, not secrets.
+- **Governance data (Oracle, routing config, audit log) is always version-controlled** — either committed directly in the project repo (colocated mode) or in the central `syndicate-projects` repo, auto-synced on every commit/merge (central mode, the default). Either way it's a tracked project asset, not a secret, and never silently lost.
 - **Identity files are immutable in project context.** Never modify `THE_LEAD.md`, `THE_LEDGER.md`, or `THE_GAVEL.md` in a project. Use `ORACLE.md` overrides instead.
 
 ---

@@ -2,7 +2,7 @@
 # =============================================================================
 # pre-commit — The Gavel's Branch Integrity Hook
 # =============================================================================
-# Version: 2.4.0
+# Version: 2.5.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
@@ -125,8 +125,18 @@ echo ""
 # -----------------------------------------------------------------------------
 echo -e "${BOLD}── CHECK-1: Branch Guard ──${RESET}"
 
+# A pending .git/MERGE_HEAD unambiguously means this commit COMPLETES a merge
+# that pre-merge-commit already gated (e.g. it blocked on a CHECK-2/5 failure,
+# the operator fixed the issue, and is now retrying via plain `git commit` —
+# the natural, expected next step, which git dispatches through pre-commit,
+# NOT pre-merge-commit again). Without this, that retry is misidentified as a
+# fresh direct commit to main/master and incorrectly blocked. Verified via a
+# real blocked-merge-then-retry test scenario, not a hypothetical.
+IS_MERGE_IN_PROGRESS=false
+[[ -f "$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)" ]] && IS_MERGE_IN_PROGRESS=true
+
 if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
-  if [[ "${SYNDICATE_MERGE_CONTEXT:-0}" == "1" ]]; then
+  if [[ "${SYNDICATE_MERGE_CONTEXT:-0}" == "1" || "$IS_MERGE_IN_PROGRESS" == true ]]; then
     # Identifying the merge's source branch reliably is harder than it looks:
     # .git/MERGE_HEAD is NOT guaranteed to exist yet when pre-merge-commit
     # fires for a clean (non-conflicting) merge — confirmed empirically
