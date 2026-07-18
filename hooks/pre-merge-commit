@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# =============================================================================
+# pre-merge-commit — The Gavel's Merge Integrity Hook
+# =============================================================================
+# Version: 1.0.0
+# Repository: jhjessup/the-shim-syndicate
+#
+# DESCRIPTION:
+#   Git invokes `pre-merge-commit` (not `pre-commit`) when a merge that would
+#   create a commit is about to happen — `git merge` does NOT automatically
+#   fall back to `pre-commit` for merges. Without this file, merge commits
+#   into any branch (including main/master) bypass every Gavel check:
+#   branch guard, Oracle integrity, secrets scan, prohibited patterns, test
+#   doctrine, and shim schema validation all silently do not run.
+#
+#   This was discovered by direct empirical testing (2026-07-18, downstream
+#   project mcp-gateway): a `git merge --no-ff mission/bootstrap` into
+#   `master` produced zero Gavel output and succeeded, while an immediately
+#   following plain `git commit` on `master` was correctly blocked by
+#   CHECK-1. Same repo, same hooksPath, same branch — the only difference
+#   was `git merge` vs `git commit`.
+#
+#   FIX: delegate to hooks/pre-commit with SYNDICATE_MERGE_CONTEXT=1 set.
+#   Its checks already read git state in a way that is merge-compatible:
+#     - CURRENT_BRANCH via `git rev-parse --abbrev-ref HEAD` reflects the
+#       merge's target branch correctly.
+#     - STAGED_FILES via `git diff --cached --name-only` reflects the full
+#       merged tree correctly (conflicts, if any, are already resolved and
+#       staged by the time this hook fires).
+#   CHECK-1 (branch guard) is the one check that needs different behavior
+#   for a merge: merging a mission/ branch into main/master is the
+#   SANCTIONED path (MISSION_BRIEF.md merge criteria literally requires
+#   "merge must go through this branch"), not a violation. Blindly reusing
+#   pre-commit's "refuse commits to main/master" logic unchanged would block
+#   every legitimate mission merge. SYNDICATE_MERGE_CONTEXT=1 tells
+#   pre-commit's CHECK-1 to verify the incoming branch is a mission/ branch
+#   instead of refusing outright — see hooks/pre-commit CHECK-1 for the
+#   actual logic. All other checks (secrets, prohibited patterns, test
+#   doctrine, shim schema) run unmodified.
+#
+# CALLER CONTRACT — SYNDICATE_MERGE_SOURCE:
+#   .git/MERGE_HEAD is NOT reliably present when this hook fires for a clean
+#   (non-conflicting) merge (confirmed empirically, git 2.43 / `ort`
+#   strategy — see the CHECK-1 comment in pre-commit for detail). To get a
+#   real mission-branch verification instead of a "could not determine"
+#   warning, set SYNDICATE_MERGE_SOURCE to the branch being merged before
+#   invoking git:
+#
+#     SYNDICATE_MERGE_SOURCE=mission/foo git merge --no-ff mission/foo -m "..."
+#
+#   Omitting it degrades to a WARN, not a block — an unidentifiable source
+#   branch does not stop a merge from landing, it just means the mission-
+#   branch check couldn't run. This keeps the sanctioned merge workflow from
+#   ever being blocked by a plumbing limitation outside the operator's
+#   control.
+#
+# EXIT CODES: passes through pre-commit's exit code unchanged (0 = allow
+#   the merge commit, non-zero = block it, exactly as for a regular commit).
+# =============================================================================
+set -euo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export SYNDICATE_MERGE_CONTEXT=1
+exec "$HOOK_DIR/pre-commit"

@@ -2,7 +2,7 @@
 # =============================================================================
 # pre-commit — The Gavel's Branch Integrity Hook
 # =============================================================================
-# Version: 2.3.0
+# Version: 2.4.0
 # Repository: jhjessup/the-shim-syndicate
 #
 # DESCRIPTION:
@@ -11,6 +11,12 @@
 #   following checks in strict order — any FAIL is a hard block:
 #
 #   [CHECK-1] BRANCH GUARD    — Refuses commits directly to 'main' or 'master'.
+#                               Also invoked (via hooks/pre-merge-commit, with
+#                               SYNDICATE_MERGE_CONTEXT=1) for merge commits
+#                               landing on main/master — the sanctioned path
+#                               per MISSION_BRIEF.md merge criteria — where it
+#                               verifies the incoming branch is a mission/
+#                               branch instead of blocking outright.
 #   [CHECK-2] MISSION ORACLE  — On a mission/ branch, verifies the branch-local
 #                               ORACLE.md exists and contains no unfilled
 #                               {{placeholder}} tokens.
@@ -110,19 +116,53 @@ echo ""
 
 # -----------------------------------------------------------------------------
 # CHECK-1: Branch Guard
-# Refuse all commits directly to main or master.
+# Refuse direct commits to main or master. A MERGE landing approved mission
+# work onto main/master is the sanctioned path (see MISSION_BRIEF.md merge
+# criteria: "merge must go through this branch") and is NOT a direct commit —
+# hooks/pre-merge-commit sets SYNDICATE_MERGE_CONTEXT=1 before invoking this
+# script for that case. In merge context, verify the incoming branch is a
+# mission/ branch (preserving the spirit of the guard) instead of blocking.
 # -----------------------------------------------------------------------------
 echo -e "${BOLD}── CHECK-1: Branch Guard ──${RESET}"
 
 if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
-  fail "Direct commits to '${CURRENT_BRANCH}' are PROHIBITED by Branch Integrity policy."
-  fail "The Lead must operate on a mission/ branch."
-  fail "Create a mission branch:  git checkout -b mission/<name>"
-  fail "Then re-run your commit."
-  echo ""
-  echo -e "${RED}${BOLD}COMMIT BLOCKED — Branch Integrity Violation${RESET}"
-  echo ""
-  exit 1
+  if [[ "${SYNDICATE_MERGE_CONTEXT:-0}" == "1" ]]; then
+    # Identifying the merge's source branch reliably is harder than it looks:
+    # .git/MERGE_HEAD is NOT guaranteed to exist yet when pre-merge-commit
+    # fires for a clean (non-conflicting) merge — confirmed empirically
+    # (git 2.43, `ort` strategy) by inspecting .git/ at hook-fire time: only
+    # AUTO_MERGE and ORIG_HEAD existed, no MERGE_HEAD. `git name-rev
+    # --name-only MERGE_HEAD` therefore silently fails in exactly the common
+    # case this check exists for. Try it anyway (works in some git
+    # versions/scenarios, e.g. a merge that paused for conflicts and was
+    # resumed), but the authoritative signal is the SYNDICATE_MERGE_SOURCE
+    # env var the caller sets explicitly — the operator/agent running
+    # `git merge <branch>` already knows the branch name; asking them to
+    # pass it is far more robust than reverse-engineering git internals that
+    # demonstrably vary by version and merge path.
+    MERGE_SOURCE="${SYNDICATE_MERGE_SOURCE:-}"
+    if [[ -z "$MERGE_SOURCE" ]]; then
+      MERGE_SOURCE="$(git name-rev --name-only MERGE_HEAD 2>/dev/null || true)"
+      MERGE_SOURCE="${MERGE_SOURCE#remotes/origin/}"
+    fi
+    if [[ -z "$MERGE_SOURCE" || "$MERGE_SOURCE" == "undefined" ]]; then
+      warn "Could not determine the merge's source branch (MERGE_HEAD unavailable at hook time and SYNDICATE_MERGE_SOURCE was not set)."
+      warn "Set SYNDICATE_MERGE_SOURCE=<branch> before 'git merge' to get a real mission-branch check here."
+    elif [[ "$MERGE_SOURCE" == mission/* ]]; then
+      pass "Merge into '${CURRENT_BRANCH}' originates from mission branch '${MERGE_SOURCE}'."
+    else
+      warn "Merge into '${CURRENT_BRANCH}' originates from '${MERGE_SOURCE}', not a mission/ branch — verify this is intentional."
+    fi
+  else
+    fail "Direct commits to '${CURRENT_BRANCH}' are PROHIBITED by Branch Integrity policy."
+    fail "The Lead must operate on a mission/ branch."
+    fail "Create a mission branch:  git checkout -b mission/<name>"
+    fail "Then re-run your commit."
+    echo ""
+    echo -e "${RED}${BOLD}COMMIT BLOCKED — Branch Integrity Violation${RESET}"
+    echo ""
+    exit 1
+  fi
 else
   pass "Branch '${CURRENT_BRANCH}' is not a protected branch."
 fi
