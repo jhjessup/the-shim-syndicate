@@ -477,7 +477,19 @@ if [[ ! -f "$ORACLE_TEMPLATE" ]]; then
   exit 1
 fi
 
-if [[ "$DRY_RUN" == false ]]; then
+# IDEMPOTENCY (verified-necessary fix, 2026-07-19): this project-level file is
+# operator-edited content, not disposable scaffolding — re-running
+# syndicate-init.sh (e.g. every `--mission` invocation, which is the normal,
+# repeated way this script gets called across a project's lifetime) must
+# never silently overwrite it. In central-governance mode this file IS the
+# permanent record (no local-only draft state to discard changes from before
+# committing), and the new auto-commit hooks can commit a blanked-out
+# regeneration before anyone notices — this exact sequence destroyed 7
+# completed tasks and 8 ADRs in a real project's governance history.
+if [[ -f "$ORACLE_DEST" ]]; then
+  log_info "ORACLE.md already exists at $ORACLE_DEST — leaving it untouched."
+  log_info "Edit it directly, or delete it first if you intentionally want a fresh template."
+elif [[ "$DRY_RUN" == false ]]; then
   sed \
     -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
     -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
@@ -501,6 +513,9 @@ DOCTRINE_DEST="$STUB_DIR/TEST_DOCTRINE.md"
 if [[ ! -f "$DOCTRINE_TEMPLATE" ]]; then
   log_warn "TEST_DOCTRINE.md template not found at: $DOCTRINE_TEMPLATE — skipping."
   log_warn "Test Doctrine will not be available until the template is present in Syndicate Core."
+elif [[ -f "$DOCTRINE_DEST" ]]; then
+  # IDEMPOTENCY — see the identical note on Step 4 (ORACLE.md) above.
+  log_info "TEST_DOCTRINE.md already exists at $DOCTRINE_DEST — leaving it untouched."
 else
   if [[ "$DRY_RUN" == false ]]; then
     sed \
@@ -530,6 +545,12 @@ MAP_DEST="$STUB_DIR/project-map.json"
 if [[ ! -f "$MAP_TEMPLATE" ]]; then
   log_warn "project-map.json template not found at: $MAP_TEMPLATE — skipping."
   log_warn "The Ledger will lack a project map until the template is present in Syndicate Core."
+elif [[ -f "$MAP_DEST" ]]; then
+  # IDEMPOTENCY — see the identical note on Step 4 (ORACLE.md) above. This one
+  # matters most of all: project-map.json accumulates the task_queue and ADR
+  # history across every mission a project has ever run. Blind regeneration
+  # here is what actually destroyed a real project's task/ADR history.
+  log_info "project-map.json already exists at $MAP_DEST — leaving it untouched."
 else
   if [[ "$DRY_RUN" == false ]]; then
     sed \
@@ -558,7 +579,15 @@ if [[ ! -f "$AUDIT_TEMPLATE" ]]; then
   exit 1
 fi
 
-if [[ "$DRY_RUN" == false ]]; then
+# IDEMPOTENCY — see the identical note on Step 4 (ORACLE.md) above. This file
+# is EXPLICITLY documented as append-only and tamper-evident (its own header:
+# "This log is append-only. Entries are never edited or deleted."). Blind
+# regeneration directly violates that invariant, and is the single most
+# severe instance of this bug class — it silently discarded real audit
+# history, not just placeholder scaffolding.
+if [[ -f "$AUDIT_DEST" ]]; then
+  log_info "AUDIT_LOG.md already exists at $AUDIT_DEST — leaving it untouched (append-only, never regenerated)."
+elif [[ "$DRY_RUN" == false ]]; then
   sed \
     -e "s/{{PROJECT_NAME}}/$ESC_PROJECT/g" \
     -e "s/{{SYNDICATE_VERSION}}/$SYNDICATE_VERSION/g" \
@@ -813,9 +842,16 @@ if [[ "$MISSION_MODE" == true ]]; then
   MAP_TEMPLATE="$CORE_PATH/templates/project-map.json"
 
   # Mission Brief
+  # IDEMPOTENCY (see Step 4's note above — same bug class, same fix): re-running
+  # `--mission` on an ALREADY-active mission branch (a legitimate, common
+  # action — e.g. resuming a session) must never wipe an operator-filled
+  # MISSION_BRIEF.md/ORACLE.md/etc. Every generation block below now skips if
+  # its destination file already exists.
   if [[ -f "$MISSION_BRIEF_TEMPLATE" ]]; then
     BRIEF_DEST="$VAULT_DIR/MISSION_BRIEF.md"
-    if [[ "$DRY_RUN" == false ]]; then
+    if [[ -f "$BRIEF_DEST" ]]; then
+      log_info "MISSION_BRIEF.md already exists at $BRIEF_DEST — leaving it untouched."
+    elif [[ "$DRY_RUN" == false ]]; then
       sed \
         -e "s/{{MISSION_NAME}}/$ESC_MISSION/g" \
         -e "s/{{MISSION_DATE}}/$MISSION_DATE/g" \
@@ -833,7 +869,9 @@ if [[ "$MISSION_MODE" == true ]]; then
 
   # Mission-local ORACLE.md (inherits from project template)
   VAULT_ORACLE="$VAULT_DIR/ORACLE.md"
-  if [[ -f "$ORACLE_TEMPLATE" ]]; then
+  if [[ -f "$VAULT_ORACLE" ]]; then
+    log_info "Mission ORACLE.md already exists at $VAULT_ORACLE — leaving it untouched."
+  elif [[ -f "$ORACLE_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
         -e "s/{{PROJECT_NAME}}/$ESC_PROJECT — mission\/$ESC_MISSION/g" \
@@ -853,7 +891,9 @@ if [[ "$MISSION_MODE" == true ]]; then
 
   # project-map.json
   VAULT_MAP="$VAULT_DIR/project-map.json"
-  if [[ -f "$MAP_TEMPLATE" ]]; then
+  if [[ -f "$VAULT_MAP" ]]; then
+    log_info "Mission project-map.json already exists at $VAULT_MAP — leaving it untouched."
+  elif [[ -f "$MAP_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
         -e "s/{{MISSION_NAME}}/$ESC_MISSION/g" \
@@ -872,7 +912,9 @@ if [[ "$MISSION_MODE" == true ]]; then
   # RESERVATIONS.json for this mission (file-ownership reservation ledger)
   RESERVATIONS_TEMPLATE="$CORE_PATH/templates/RESERVATIONS.json"
   VAULT_RESERVATIONS="$VAULT_DIR/RESERVATIONS.json"
-  if [[ -f "$RESERVATIONS_TEMPLATE" ]]; then
+  if [[ -f "$VAULT_RESERVATIONS" ]]; then
+    log_info "RESERVATIONS.json already exists at $VAULT_RESERVATIONS — leaving it untouched (it holds live agent locks)."
+  elif [[ -f "$RESERVATIONS_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
         -e "s/{{project_name}}/$ESC_PROJECT/g" \
@@ -887,7 +929,9 @@ if [[ "$MISSION_MODE" == true ]]; then
 
   # TEST_DOCTRINE.md for this mission (inherits from project template)
   VAULT_DOCTRINE="$VAULT_DIR/TEST_DOCTRINE.md"
-  if [[ -f "$DOCTRINE_TEMPLATE" ]]; then
+  if [[ -f "$VAULT_DOCTRINE" ]]; then
+    log_info "Mission TEST_DOCTRINE.md already exists at $VAULT_DOCTRINE — leaving it untouched."
+  elif [[ -f "$DOCTRINE_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
         -e "s/{{PROJECT_NAME}}/$ESC_PROJECT — mission\/$ESC_MISSION/g" \
@@ -906,7 +950,11 @@ if [[ "$MISSION_MODE" == true ]]; then
   # AUDIT_LOG.md for this mission
   VAULT_AUDIT="$VAULT_DIR/logs/AUDIT_LOG.md"
   AUDIT_TEMPLATE="$CORE_PATH/templates/AUDIT_LOG.md"
-  if [[ -f "$AUDIT_TEMPLATE" ]]; then
+  if [[ -f "$VAULT_AUDIT" ]]; then
+    # Same append-only invariant as the project-level AUDIT_LOG.md (Step 5) —
+    # never regenerate over real entries.
+    log_info "Mission AUDIT_LOG.md already exists at $VAULT_AUDIT — leaving it untouched (append-only)."
+  elif [[ -f "$AUDIT_TEMPLATE" ]]; then
     if [[ "$DRY_RUN" == false ]]; then
       sed \
         -e "s/{{PROJECT_NAME}}/$ESC_PROJECT — mission\/$ESC_MISSION/g" \
