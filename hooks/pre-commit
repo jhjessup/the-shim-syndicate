@@ -80,6 +80,19 @@ warn() { echo -e "${WARN} $*"; (( WARN_COUNT++ )) || true; }
 pass() { echo -e "${PASS} $*"; }
 info() { echo -e "${INFO} $*"; }
 
+# True if $1 is a documented, secret-free .env template file — the standard
+# convention for showing which vars a project needs without real values
+# (.env.example, .env.sample, .env.template, or a *.env.example-style
+# variant). These are meant to be committed; only genuine .env files
+# (.env, .env.local, .env.production, ...) should be blocked by CHECK-3's
+# filename guard.
+is_env_example_file() {
+  local file="$1"
+  local base="${file##*/}"
+  [[ "$base" == *.env.example || "$base" == *.env.sample || "$base" == *.env.template \
+     || "$base" == .env.example || "$base" == .env.sample || "$base" == .env.template ]]
+}
+
 # -----------------------------------------------------------------------------
 # Header
 # -----------------------------------------------------------------------------
@@ -247,8 +260,17 @@ else
 
   # .env-file guard — ALWAYS runs, regardless of which scanner handles the
   # content scan. Committing a .env file is a hard failure in every mode.
+  # Documented, secret-free template files (.env.example, .env.sample,
+  # .env.template, or any *.env.example variant) are the standard,
+  # recommended way to document required env vars without real values — they
+  # must NOT be blocked by this guard (discovered: mission/actual-budget-provider,
+  # mcp-gateway, 2026-07-19 — the original bare ".env."* match caught
+  # .env.example too, blocking a completely safe, git-tracked-by-design file).
   while IFS= read -r file; do
     [[ -z "$file" ]] && continue
+    if is_env_example_file "$file"; then
+      continue
+    fi
     if [[ "$file" == ".env" || "$file" == *".env."* ]]; then
       fail "Staged file is a .env file: $file — this must be gitignored, not committed."
       SECRETS_FOUND=true
@@ -306,8 +328,12 @@ else
       if git show ":$file" 2>/dev/null | file --mime - 2>/dev/null | grep -q 'binary'; then
         continue
       fi
-      # .env files were already failed by the always-on guard above
-      if [[ "$file" == ".env" || "$file" == *".env."* ]]; then
+      # Real .env files were already failed by the always-on guard above —
+      # skip them here to avoid redundant findings. .env.example-style
+      # template files are exempt from that guard (see comment there) but
+      # NOT from this content scan: they're meant to be committed, but a
+      # real secret accidentally pasted into one should still be caught.
+      if [[ "$file" == ".env" || "$file" == *".env."* ]] && ! is_env_example_file "$file"; then
         continue
       fi
 
