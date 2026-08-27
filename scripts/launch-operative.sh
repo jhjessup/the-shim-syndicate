@@ -58,7 +58,18 @@ tier_to_model() {
     gemini-high)    echo "gemini-2.5-pro" ;;
     gemini-medium)  echo "gemini-2.5-flash" ;;
     gemini-low)     echo "gemini-2.0-flash-lite" ;;
-    pi)             echo "pi" ;;
+    pi)                echo "pi" ;;
+    # Explicit routing to the top 3 coding-family free models on OpenRouter
+    # (selected 2026-08-27 — verified live against openrouter.ai/api/v1/models;
+    # re-verify periodically, free-tier slugs churn). Each is the most capable
+    # free variant of its family: Nemotron (NVIDIA, 550B MoE, 1M ctx),
+    # MiniMax-M3 (1M ctx, agentic-coding flagship), Poolside Laguna-S-2.1
+    # (code-specialized lab, 262K ctx — near the ceiling pi's default output
+    # reservation allows; families with <~260K context fail with a context-
+    # overflow 400 under pi's defaultThinkingLevel).
+    pi-nemotron)       echo "pi" ;;
+    pi-minimax)        echo "pi" ;;
+    pi-poolside)       echo "pi" ;;
     *) log_error "Unknown tier: $1"; exit 1 ;;
   esac
 }
@@ -245,6 +256,15 @@ elif [[ "$BACKEND" == "gemini" ]]; then
 
 elif [[ "$TIER" == "pi" ]]; then
   pi --print "${PASSTHROUGH[@]}"
+
+elif [[ "$TIER" == "pi-nemotron" ]]; then
+  pi --provider openrouter --model "nvidia/nemotron-3-ultra-550b-a55b:free" --print "${PASSTHROUGH[@]}"
+
+elif [[ "$TIER" == "pi-minimax" ]]; then
+  pi --provider openrouter --model "minimax/minimax-m3:free" --print "${PASSTHROUGH[@]}"
+
+elif [[ "$TIER" == "pi-poolside" ]]; then
+  pi --provider openrouter --model "poolside/laguna-s-2.1:free" --print "${PASSTHROUGH[@]}"
 
 else
   log_error "Unrecognized backend: $BACKEND"

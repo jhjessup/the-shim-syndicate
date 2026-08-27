@@ -45,16 +45,14 @@
       {
         "name": "openrouter",
         "designated_models": [
-          "google/gemini-3.1-flash-lite-preview",
-          "google/gemini-3-flash-preview",
-          "google/gemma-4-31b-it:free",
-          "qwen/qwen3-coder:free",
-          "openrouter/free"
+          "nvidia/nemotron-3-ultra-550b-a55b:free",
+          "minimax/minimax-m3:free",
+          "poolside/laguna-s-2.1:free"
         ],
         "env_var_api_key": "OPENROUTER_API_KEY",
-        "notes": "Unified interface for proprietary and large open-weight models.",
-        "models_verified_on": "2026-04-13",
-        "verification_note": "Model slugs rot as providers rotate offerings. Re-verify with: pi --provider <name> --list-models (or provider docs) and update models_verified_on."
+        "notes": "Top 3 coding-relevant free-tier families on OpenRouter, most capable free variant of each: NVIDIA Nemotron (550B MoE, 1M ctx, strongest by params/context), MiniMax (M3, 1M ctx, agentic-coding flagship), Poolside (Laguna-S-2.1, 262K ctx, the only lab of the three whose entire product is code-specialized models). Models with <~260K context (e.g. GLM-5.2, Cohere north-mini-code) fail with a context-overflow 400 under pi's defaultThinkingLevel, which reserves a large fixed output budget regardless of --thinking on unrecognized/custom model ids — verify headroom before adding a new family below that threshold. Verified live against https://openrouter.ai/api/v1/models (pricing.prompt == 0 and pricing.completion == 0) and via `pi --provider openrouter --model <id> --print \"...\"` end-to-end through scripts/launch-operative.sh's pi-nemotron/pi-minimax/pi-poolside tiers.",
+        "models_verified_on": "2026-08-27",
+        "verification_note": "Model slugs rot as providers rotate offerings — OpenRouter's free tier churns especially fast. Re-verify with: curl -s https://openrouter.ai/api/v1/models -H \"Authorization: Bearer $OPENROUTER_API_KEY\" | jq '.data[] | select(.pricing.prompt==\"0\" and .pricing.completion==\"0\") | .id', then test each candidate with `pi --provider openrouter --model <id> --print \"...\"` before updating designated_models and models_verified_on."
       }
     ],
     "model_refresh_procedure": "Before relying on this shim after a gap, verify each designated model still exists: run pi --provider <provider> --list-models, update stale slugs, bump models_verified_on, and re-run scripts/validate-shims.sh."
